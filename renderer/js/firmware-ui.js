@@ -1,4 +1,4 @@
-import { basename, createBadge, formatBytes, jsonSafe } from "./components.js";
+import { basename, createBadge, formatBytes } from "./components.js";
 
 const PACKAGE_ORDER = ["BL", "AP", "CP", "CSC", "HOME_CSC"];
 
@@ -8,70 +8,54 @@ function resolvePackageStatus(name, analysis) {
   const prefix = `${name.toLowerCase()}_`;
 
   if (foundPackages.some((value) => basename(value).toLowerCase().startsWith(prefix))) {
-    return { label: "Encontrado", variant: "success" };
+    return { label: "Detectado", variant: "success" };
   }
 
-  if (missingPackages.some((value) => String(value).toLowerCase() === name)) {
+  if (missingPackages.some((value) => String(value).toLowerCase() === name.toLowerCase())) {
     return { label: "Faltante", variant: "warning" };
   }
 
   return { label: "Pendiente", variant: "muted" };
 }
 
-export function renderFirmwarePanel({ pathText, hintText, packageGrid, summaryBox }, state) {
-  pathText.textContent = state.firmware.path || "No seleccionada";
+function sumImageSizes(images = []) {
+  return images.reduce((total, image) => total + (Number(image?.sizeBytes) || 0), 0);
+}
+
+export function renderFirmwarePanel({ pathText, hintText, packageGrid, summaryBox, dropZone }, state) {
+  const analysis = state.firmware.analysis;
+  const sourcePath = state.firmware.path || analysis?.sourcePath || "";
+
+  pathText.textContent = state.firmware.path ? basename(state.firmware.path) : "No seleccionada";
   hintText.textContent = state.firmware.path
     ? "Lista para analizar."
-    : "Carpeta con BL/AP/CP/CSC/HOME_CSC.";
+    : "Arrastra aquí la carpeta con BL / AP / CP / CSC.";
+  summaryBox.textContent = analysis
+    ? `${analysis.foundPackages?.length || 0} paquetes detectados · ${formatBytes(sumImageSizes(analysis.images))}`
+    : "Sin análisis todavía.";
+
+  if (dropZone) {
+    dropZone.classList.toggle("is-populated", Boolean(sourcePath));
+  }
 
   packageGrid.replaceChildren();
 
-  const analysis = state.firmware.analysis;
   PACKAGE_ORDER.forEach((name) => {
     const status = resolvePackageStatus(name, analysis);
-    const card = document.createElement("article");
-    card.className = "ff-card";
+    const chip = document.createElement("div");
+    chip.className = `ff-chip ff-chip--${status.variant}`;
 
-    const title = document.createElement("div");
-    title.className = "flex items-center justify-between gap-3";
+    const title = document.createElement("span");
+    title.className = "ff-chip-label";
+    title.textContent = name;
 
-    const left = document.createElement("div");
-    left.className = "space-y-1";
+    const meta = document.createElement("span");
+    meta.className = "ff-chip-status";
+    meta.textContent = status.label;
 
-    const label = document.createElement("div");
-    label.className = "ff-card-title";
-    label.textContent = name;
-
-    const meta = document.createElement("div");
-    meta.className = "ff-card-note";
-    meta.textContent = name === "HOME_CSC"
-      ? "Puede preservar datos, sin garantía."
-      : name === "CSC"
-        ? "Puede borrar datos."
-        : "Paquete oficial Samsung.";
-
-    left.append(label, meta);
-
-    const badge = createBadge(status.label, status.variant);
-    title.append(left, badge);
-
-    const details = document.createElement("pre");
-    details.className = "ff-pre mt-3 max-h-36";
-    const matches = (analysis?.foundPackages || []).filter((value) => basename(value).toLowerCase().startsWith(`${name.toLowerCase()}_`));
-    details.textContent = matches.length ? matches.join("\n") : "Sin archivo detectado.";
-
-    card.append(title, details);
-    packageGrid.appendChild(card);
+    chip.append(title, meta);
+    packageGrid.appendChild(chip);
   });
-
-  summaryBox.textContent = analysis ? jsonSafe({
-    analysisPath: analysis.analysisPath,
-    sourcePath: analysis.sourcePath,
-    foundPackages: analysis.foundPackages?.length || 0,
-    missingPackages: analysis.missingPackages?.length || 0,
-    images: analysis.images?.length || 0,
-    warnings: analysis.warnings || [],
-  }) : "Sin análisis todavía.";
 }
 
 export function renderFirmwareAnalysis(target, analysis) {
@@ -81,13 +65,12 @@ export function renderFirmwareAnalysis(target, analysis) {
   }
 
   const lines = [
-    `Ruta fuente: ${analysis.sourcePath || "n/a"}`,
-    `Análisis: ${analysis.analysisPath || "n/a"}`,
-    `Paquetes detectados: ${analysis.foundPackages?.length || 0}`,
-    `Imágenes preparadas: ${analysis.images?.length || 0}`,
-    `Advertencias: ${analysis.warnings?.length || 0}`,
+    `${analysis.foundPackages?.length || 0} paquetes detectados`,
+    `${analysis.images?.length || 0} imágenes preparadas`,
+    `${analysis.warnings?.length || 0} advertencias`,
   ];
-  target.textContent = lines.join("\n");
+
+  target.textContent = lines.join(" · ");
 }
 
 export function renderFirmwareImageSize(value) {

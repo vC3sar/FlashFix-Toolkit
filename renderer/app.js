@@ -26,8 +26,11 @@ const els = {
   buildPlanBtn: byId("buildPlanBtn"),
   selectPlanBtn: byId("selectPlanBtn"),
   flashPlanBtn: byId("flashPlanBtn"),
-  cleanTempSecondaryBtn: byId("cleanTempSecondaryBtn"),
   openLicensesBtn: byId("openLicensesBtn"),
+  copyCorePathBtn: byId("copyCorePathBtn"),
+  copyLogsPathBtn: byId("copyLogsPathBtn"),
+  copyTempPathBtn: byId("copyTempPathBtn"),
+  copyLicensesPathBtn: byId("copyLicensesPathBtn"),
   backendPathText: byId("backendPathText"),
   backendPathFullBox: byId("backendPathFullBox"),
   logsPathText: byId("logsPathText"),
@@ -37,15 +40,20 @@ const els = {
   licensesPathText: byId("licensesPathText"),
   licensesPathFullBox: byId("licensesPathFullBox"),
   disclaimerText: byId("disclaimerText"),
+  logsPanel: byId("logsPanel"),
+  logSummaryText: byId("logSummaryText"),
   deviceStatusText: byId("deviceStatusText"),
   deviceDetailText: byId("deviceDetailText"),
   deviceModelText: byId("deviceModelText"),
   deviceModelMetaText: byId("deviceModelMetaText"),
   deviceBadgeInline: byId("deviceBadgeInline"),
   deviceInfoBox: byId("deviceInfoBox"),
+  deviceEmptyState: byId("deviceEmptyState"),
+  deviceConnectedState: byId("deviceConnectedState"),
   pitBox: byId("pitBox"),
   firmwarePathText: byId("firmwarePathText"),
   firmwareHintText: byId("firmwareHintText"),
+  firmwareDropZone: byId("firmwareDropZone"),
   firmwarePackageGrid: byId("firmwarePackageGrid"),
   analysisSummaryBox: byId("analysisSummaryBox"),
   pitPathText: byId("pitPathText"),
@@ -69,13 +77,18 @@ const els = {
   copyAllLogsBtn: byId("copyAllLogsBtn"),
   exportLogsBtn: byId("exportLogsBtn"),
   clearLogsBtn: byId("clearLogsBtn"),
-  openLogsBtn: byId("openLogsBtn"),
+  workspaceView: byId("workspaceView"),
+  settingsView: byId("section-settings"),
+  workspaceTabBtn: byId("workspaceTabBtn"),
+  settingsTabBtn: byId("settingsTabBtn"),
+  viewButtons: document.querySelectorAll("[data-view]"),
   filterButtons: document.querySelectorAll("[data-log-filter]"),
 };
 
 const logger = new LoggerUI({
   streamEl: els.logStream,
   countEl: els.logCountText,
+  summaryEl: els.logSummaryText,
   filterButtons: els.filterButtons,
   searchInput: els.logSearchInput,
   clearBtn: els.clearLogsBtn,
@@ -97,6 +110,72 @@ function setBusy(value) {
   renderOperationPanel();
 }
 
+function renderViewState() {
+  const settingsActive = state.ui.activeSection === "settings";
+
+  if (els.workspaceView) {
+    els.workspaceView.hidden = settingsActive;
+  }
+
+  if (els.settingsView) {
+    els.settingsView.hidden = !settingsActive;
+  }
+
+  els.viewButtons.forEach((button) => {
+    const active = button.dataset.view === state.ui.activeSection;
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+}
+
+function setActiveView(view) {
+  state.ui.activeSection = view === "settings" ? "settings" : "workspace";
+  renderViewState();
+}
+
+async function copyText(value) {
+  if (!value) {
+    return;
+  }
+
+  await navigator.clipboard.writeText(String(value));
+}
+
+function normalizeDroppedFolderPath(value) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return "";
+  }
+
+  const tail = text.split(/[\\/]/).pop() || "";
+  if (/\.[a-z0-9]{1,6}$/i.test(tail) || /\.tar\.md5$/i.test(tail) || /\.zip$/i.test(tail)) {
+    return text.replace(/[\\/][^\\/]+$/, "");
+  }
+
+  return text;
+}
+
+function applyFirmwareFolder(folder) {
+  if (!folder) {
+    return;
+  }
+
+  state.firmware.path = folder;
+  state.firmware.analysis = null;
+  state.firmware.packages = [];
+  state.flashPlan.path = null;
+  state.flashPlan.items = [];
+  state.flashPlan.summary = null;
+  state.flashPlan.warnings = [];
+  renderAll();
+  logger.add({
+    level: "info",
+    command: "select-firmware",
+    message: `Firmware seleccionado: ${basename(folder)}`,
+    details: { folder },
+    expandable: true,
+  });
+}
+
 function updateButtons() {
   const backendReady = state.core.available;
   const disabled = Boolean(state.operation.running);
@@ -113,7 +192,6 @@ function updateButtons() {
     els.selectPlanBtn,
     els.flashPlanBtn,
     els.cleanTempBtn,
-    els.cleanTempSecondaryBtn,
   ].forEach((button) => {
     if (!button) {
       return;
@@ -128,7 +206,6 @@ function updateButtons() {
       els.buildPlanBtn,
       els.flashPlanBtn,
       els.cleanTempBtn,
-      els.cleanTempSecondaryBtn,
     ].includes(button);
 
     const selectionAction = [els.selectFirmwareBtn, els.selectPitBtn, els.selectPlanBtn].includes(button);
@@ -138,8 +215,8 @@ function updateButtons() {
   });
 
   els.openLogsQuickBtn.disabled = false;
-  els.openLogsBtn.disabled = false;
   els.openLicensesBtn.disabled = false;
+  els.flashPlanBtn.disabled = !backendReady || disabled || !state.flashPlan.path || !state.flashPlan.items.length;
 }
 
 function renderDashboard() {
@@ -202,6 +279,8 @@ function renderSettings() {
 
 function renderDeviceSection() {
   renderDevicePanel({
+    emptyState: els.deviceEmptyState,
+    connectedState: els.deviceConnectedState,
     statusText: els.deviceStatusText,
     detailText: els.deviceDetailText,
     modelText: els.deviceModelText,
@@ -223,6 +302,7 @@ function renderFirmwareSection() {
     hintText: els.firmwareHintText,
     packageGrid: els.firmwarePackageGrid,
     summaryBox: els.analysisSummaryBox,
+    dropZone: els.firmwareDropZone,
   }, state);
 }
 
@@ -285,6 +365,7 @@ function renderOperationPanel() {
 }
 
 function renderAll() {
+  renderViewState();
   renderTopBadges();
   renderDashboard();
   renderDeviceSection();
@@ -501,14 +582,6 @@ function wireActions() {
     expandable: true,
   })));
 
-  els.openLogsBtn.addEventListener("click", () => openLogsFolder().catch((error) => logger.add({
-    level: "error",
-    command: "open-logs",
-    message: error.message || String(error),
-    details: { error: error.message || String(error) },
-    expandable: true,
-  })));
-
   els.openLicensesBtn.addEventListener("click", () => openLicensesFolder().catch((error) => logger.add({
     level: "error",
     command: "open-licenses",
@@ -535,7 +608,33 @@ function wireActions() {
   };
 
   els.cleanTempBtn.addEventListener("click", runCleanTemp);
-  els.cleanTempSecondaryBtn.addEventListener("click", runCleanTemp);
+
+  [els.workspaceTabBtn, els.settingsTabBtn].forEach((button) => {
+    if (!button) {
+      return;
+    }
+
+    button.addEventListener("click", () => setActiveView(button.dataset.view));
+  });
+
+  [
+    [els.copyCorePathBtn, () => copyText(els.backendPathFullBox?.textContent)],
+    [els.copyLogsPathBtn, () => copyText(els.logsPathFullBox?.textContent)],
+    [els.copyTempPathBtn, () => copyText(els.tempPathFullBox?.textContent)],
+    [els.copyLicensesPathBtn, () => copyText(els.licensesPathFullBox?.textContent)],
+  ].forEach(([button, handler]) => {
+    if (!button) {
+      return;
+    }
+
+    button.addEventListener("click", () => handler().catch((error) => logger.add({
+      level: "error",
+      command: "copy-path",
+      message: error.message || String(error),
+      details: { error: error.message || String(error) },
+      expandable: true,
+    })));
+  });
 
   els.detectBtn.addEventListener("click", async () => {
     setBusy(true);
@@ -595,23 +694,36 @@ function wireActions() {
     if (!folder) {
       return;
     }
-
-    state.firmware.path = folder;
-    state.firmware.analysis = null;
-    state.firmware.packages = [];
-    state.flashPlan.path = null;
-    state.flashPlan.items = [];
-    state.flashPlan.summary = null;
-    state.flashPlan.warnings = [];
-    renderAll();
-    logger.add({
-      level: "info",
-      command: "select-firmware",
-      message: `Firmware seleccionado: ${basename(folder)}`,
-      details: { folder },
-      expandable: true,
-    });
+    applyFirmwareFolder(folder);
   });
+
+  if (els.firmwareDropZone) {
+    els.firmwareDropZone.addEventListener("click", (event) => {
+      if (event.target.closest("button")) {
+        return;
+      }
+      els.selectFirmwareBtn?.click();
+    });
+
+    els.firmwareDropZone.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      els.firmwareDropZone.classList.add("is-dragover");
+    });
+
+    els.firmwareDropZone.addEventListener("dragleave", () => {
+      els.firmwareDropZone.classList.remove("is-dragover");
+    });
+
+    els.firmwareDropZone.addEventListener("drop", (event) => {
+      event.preventDefault();
+      els.firmwareDropZone.classList.remove("is-dragover");
+      const file = event.dataTransfer?.files?.[0];
+      const dropped = normalizeDroppedFolderPath(file?.path || file?.name || "");
+      if (dropped) {
+        applyFirmwareFolder(dropped);
+      }
+    });
+  }
 
   els.analyzeBtn.addEventListener("click", async () => {
     if (!state.firmware.path) {

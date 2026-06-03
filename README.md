@@ -108,11 +108,11 @@ npm run watch:styles
 
 What controls the look and feel:
 
-- `tailwind.config.js` defines the FlashFix color palette and shadow tokens.
+- `tailwind.config.js` defines the FlashFix color palette and flat UI tokens.
 - `renderer/input.css` defines reusable component classes with `@apply`.
-- `renderer/index.html` defines the layout structure, including the fixed log sidebar, the stacked main sections, and the dedicated Settings screen.
+- `renderer/index.html` defines the layout structure, including the fixed log sidebar, the linear workspace flow, and the dedicated Settings view.
 - `renderer/js/logger-ui.js` manages the log console rendering, filters, search, copy/export actions, and expandable details.
-- `renderer/js/navigation.js` is kept for reference, but the current UI shows the main sections simultaneously instead of switching tabs.
+- `renderer/js/navigation.js` is kept for reference, but the current UI only switches between `Workspace` and `Settings`.
 
 Log behavior:
 
@@ -123,8 +123,10 @@ Log behavior:
 - `type=warning` is rendered as warning.
 - `type=debug` and raw lines are rendered as muted/debug entries.
 - Entries with `data`, `details`, `stdout`, `stderr`, or `stack` can be expanded inline.
-- The logs panel stays visible in the left sidebar while device, firmware, PIT, flash plan, and Settings panels remain visible in the main column.
-- `Settings` has its own screen at the bottom of the main area, with a scrollable body for routes, maintenance, and legal notes.
+- The logs panel stays visible in the left sidebar with a collapsed summary by default.
+- The main area switches between `Workspace` and the dedicated `Settings` view.
+- `Workspace` keeps the five core sections visible at once: Dashboard, Device, Firmware, PIT, and Flash Plan.
+- `Settings` shows only routes, maintenance, and legal notes, with copy buttons for project paths and log exports.
 
 The UI does not clear the real log files when you click "Limpiar vista". It only clears the visible console buffer.
 

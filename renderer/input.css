@@ -13,10 +13,8 @@
   }
 
   body {
-    background-image:
-      radial-gradient(circle at top left, rgba(129, 140, 248, 0.12), transparent 26%),
-      radial-gradient(circle at top right, rgba(56, 189, 248, 0.07), transparent 18%),
-      linear-gradient(180deg, rgba(11, 16, 32, 1), rgba(9, 12, 24, 1));
+    font-family: "Inter", system-ui, sans-serif;
+    background: #0f1117;
   }
 
   * {
@@ -24,50 +22,58 @@
   }
 
   ::selection {
-    background: rgba(129, 140, 248, 0.35);
+    background: rgba(79, 142, 247, 0.24);
     color: #ffffff;
   }
 }
 
 @layer components {
   .ff-shell {
-    @apply mx-auto flex min-h-screen max-w-[1800px] flex-col px-4 py-4 lg:px-6;
+    @apply mx-auto flex min-h-screen max-w-[1760px] flex-col gap-3 px-3 py-3 lg:px-4;
   }
 
   .ff-topbar {
-    @apply mb-4 rounded-3xl border border-flashfix-border bg-flashfix-panel/90 px-5 py-4 shadow-soft backdrop-blur;
+    @apply min-h-[56px] rounded-xl border border-flashfix-border bg-flashfix-panel px-4 py-2 lg:h-[56px] lg:py-0;
   }
 
   .ff-topbar-grid {
-    @apply flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between;
+    @apply grid h-full grid-cols-1 items-center gap-3 lg:grid-cols-[1fr_minmax(0,1.2fr)_1fr];
+  }
+
+  .ff-topbar-center {
+    @apply flex justify-center;
+  }
+
+  .ff-topbar-actions {
+    @apply flex flex-col items-end gap-2;
   }
 
   .ff-brand {
-    @apply flex items-start gap-4;
+    @apply flex items-center gap-3;
   }
 
   .ff-brand-mark {
-    @apply flex h-12 w-12 items-center justify-center rounded-2xl border border-flashfix-border bg-flashfix-panel2 text-lg font-semibold text-flashfix-accent shadow-insetSoft;
+    @apply flex h-9 w-9 items-center justify-center rounded-lg border border-flashfix-border bg-flashfix-panel2 text-sm font-semibold text-flashfix-text;
   }
 
   .ff-eyebrow {
-    @apply text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-flashfix-accent;
+    @apply text-[11px] font-medium text-flashfix-muted;
   }
 
   .ff-title {
-    @apply text-2xl font-semibold tracking-tight text-flashfix-text sm:text-3xl;
+    @apply text-[15px] font-semibold leading-none text-flashfix-text;
   }
 
   .ff-subtitle {
-    @apply mt-1 max-w-3xl text-sm leading-6 text-flashfix-muted;
+    @apply mt-0.5 text-sm text-flashfix-muted;
   }
 
   .ff-badge-row {
-    @apply flex flex-wrap gap-2;
+    @apply flex flex-wrap items-center justify-center gap-2;
   }
 
   .ff-badge {
-    @apply inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium tracking-wide shadow-insetSoft;
+    @apply inline-flex items-center rounded-full border px-[10px] py-[3px] text-[11px] font-medium;
   }
 
   .ff-badge--success {
@@ -94,68 +100,84 @@
     @apply border-flashfix-accent/30 bg-flashfix-accent/10 text-flashfix-accent;
   }
 
+  .ff-view-tabs {
+    @apply inline-flex items-center gap-1 rounded-lg border border-flashfix-border bg-flashfix-panel2 p-1;
+  }
+
+  .ff-view-tab {
+    @apply rounded-md px-3 py-2 text-[13px] font-medium text-flashfix-muted transition;
+  }
+
+  .ff-view-tab:hover {
+    @apply text-flashfix-text;
+  }
+
+  .ff-view-tab[aria-pressed="true"] {
+    @apply bg-flashfix-accent text-white;
+  }
+
   .ff-workspace {
-    @apply grid items-start gap-4 xl:grid-cols-[24rem_minmax(0,1fr)];
+    @apply grid items-start gap-3 xl:grid-cols-[280px_minmax(0,1fr)];
   }
 
   .ff-sidebar {
-    @apply sticky top-4 flex max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-3xl border border-flashfix-border bg-flashfix-panel/90 p-4 shadow-soft backdrop-blur;
+    @apply sticky top-[68px] flex max-h-[calc(100vh-84px)] min-h-0 flex-col overflow-hidden rounded-xl border border-flashfix-border bg-flashfix-panel;
   }
 
   .ff-main {
-    @apply min-w-0 space-y-4;
+    @apply min-w-0 space-y-3;
+  }
+
+  .ff-main-stack {
+    @apply space-y-3;
   }
 
   .ff-sidebar-stack {
-    @apply flex min-h-0 flex-1 flex-col gap-4;
+    @apply flex min-h-0 flex-1 flex-col gap-3 p-3;
   }
 
-  .ff-sidebar-log {
-    @apply flex min-h-0 flex-1 flex-col;
+  .ff-operation-card {
+    @apply flex-none;
   }
 
-  .ff-sidebar-bottom {
-    @apply mt-auto space-y-3;
+  .ff-logs-panel {
+    @apply min-h-0 rounded-xl border border-flashfix-border bg-flashfix-panel;
   }
 
-  .ff-sidebar-panel {
-    @apply rounded-3xl border border-flashfix-border bg-flashfix-panel/90 shadow-soft backdrop-blur;
+  .ff-logs-panel > summary {
+    @apply cursor-pointer list-none px-3 py-3;
   }
 
-  .ff-sidebar-panel-header {
-    @apply border-b border-flashfix-border px-4 py-4;
+  .ff-logs-panel > summary::-webkit-details-marker {
+    display: none;
   }
 
-  .ff-sidebar-panel-body {
-    @apply px-4 py-4;
+  .ff-logs-summary {
+    @apply flex items-center justify-between gap-3;
   }
 
-  .ff-sidebar-title {
-    @apply mb-3 px-2 text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-flashfix-dim;
+  .ff-logs-summary-left {
+    @apply min-w-0;
   }
 
-  .ff-nav {
-    @apply flex flex-col gap-1;
+  .ff-logs-summary-text {
+    @apply mt-1 truncate text-[13px] text-flashfix-muted;
   }
 
-  .ff-nav-btn {
-    @apply flex w-full items-center justify-between rounded-2xl border border-transparent px-3 py-2.5 text-left text-sm font-medium text-flashfix-muted transition;
+  .ff-logs-summary-count {
+    @apply rounded-full border border-flashfix-border bg-flashfix-panel2 px-2 py-1 text-[11px] font-medium text-flashfix-muted;
   }
 
-  .ff-nav-btn:hover {
-    @apply border-flashfix-border bg-flashfix-panel2 text-flashfix-text;
-  }
-
-  .ff-nav-btn[aria-current="page"] {
-    @apply border-flashfix-accent/30 bg-flashfix-accent/10 text-flashfix-text;
+  .ff-logs-body {
+    @apply border-t border-flashfix-border;
   }
 
   .ff-section {
-    @apply rounded-3xl border border-flashfix-border bg-flashfix-panel/90 shadow-soft backdrop-blur;
+    @apply rounded-xl border border-flashfix-border bg-flashfix-panel;
   }
 
   .ff-section-panel {
-    @apply p-5 lg:p-6;
+    @apply p-5;
   }
 
   .ff-settings-shell {
@@ -163,11 +185,11 @@
   }
 
   .ff-settings-scroll {
-    @apply min-h-0 max-h-[36rem] overflow-auto pr-1;
+    @apply max-h-[36rem] overflow-auto pr-1;
   }
 
   .ff-settings-grid {
-    @apply grid gap-4 xl:grid-cols-2;
+    @apply grid gap-3 xl:grid-cols-2;
   }
 
   .ff-settings-card {
@@ -175,31 +197,78 @@
   }
 
   .ff-section-header {
-    @apply mb-5 flex flex-col gap-3 border-b border-flashfix-border pb-4 lg:flex-row lg:items-center lg:justify-between;
+    @apply mb-4 flex flex-col gap-3 border-b border-flashfix-border pb-3 lg:flex-row lg:items-center lg:justify-between;
   }
 
   .ff-section-title {
-    @apply text-lg font-semibold text-flashfix-text;
+    @apply text-[15px] font-semibold text-flashfix-text;
   }
 
   .ff-section-subtitle {
     @apply mt-1 text-sm text-flashfix-muted;
   }
 
-  .ff-grid-6 {
-    @apply grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6;
+  .ff-grid-2 {
+    @apply grid gap-3 xl:grid-cols-2;
   }
 
   .ff-grid-3 {
     @apply grid gap-3 md:grid-cols-2 xl:grid-cols-3;
   }
 
-  .ff-grid-2 {
-    @apply grid gap-3 xl:grid-cols-2;
+  .ff-dashboard-track {
+    @apply grid gap-2 lg:grid-cols-4;
+  }
+
+  .ff-dashboard-stack {
+    @apply space-y-2;
+  }
+
+  .ff-step-card {
+    @apply flex items-start gap-3 rounded-lg border border-flashfix-border bg-flashfix-panel2 p-3;
+  }
+
+  .ff-step-card--pending .ff-step-icon,
+  .ff-step-card--pending .ff-step-status {
+    @apply text-flashfix-muted;
+  }
+
+  .ff-step-card--active .ff-step-icon,
+  .ff-step-card--active .ff-step-status {
+    @apply text-flashfix-accent;
+  }
+
+  .ff-step-card--ready .ff-step-icon,
+  .ff-step-card--ready .ff-step-status {
+    @apply text-flashfix-success;
+  }
+
+  .ff-step-icon {
+    @apply flex h-8 w-8 flex-none items-center justify-center rounded-md border border-flashfix-border bg-flashfix-bg text-[13px] font-semibold;
+  }
+
+  .ff-step-body {
+    @apply min-w-0;
+  }
+
+  .ff-step-label {
+    @apply text-[11px] font-medium uppercase tracking-[0.18em] text-flashfix-muted;
+  }
+
+  .ff-step-status {
+    @apply mt-1 text-[14px] font-semibold;
+  }
+
+  .ff-step-note {
+    @apply mt-1 truncate text-[13px] text-flashfix-muted;
+  }
+
+  .ff-dashboard-summary {
+    @apply rounded-lg border border-flashfix-border bg-flashfix-panel2 px-3 py-3 text-sm text-flashfix-muted;
   }
 
   .ff-card {
-    @apply rounded-2xl border border-flashfix-border bg-flashfix-panel2/80 p-4 shadow-insetSoft;
+    @apply rounded-lg border border-flashfix-border bg-flashfix-panel2 p-5;
   }
 
   .ff-card-title {
@@ -207,11 +276,11 @@
   }
 
   .ff-card-label {
-    @apply text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-flashfix-dim;
+    @apply text-[11px] font-medium uppercase tracking-[0.18em] text-flashfix-muted;
   }
 
   .ff-card-value {
-    @apply mt-2 text-xl font-semibold text-flashfix-text;
+    @apply mt-2 text-[22px] font-semibold leading-tight text-flashfix-text;
   }
 
   .ff-card-note {
@@ -223,47 +292,71 @@
   }
 
   .ff-btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-flashfix-border bg-flashfix-panel2 px-4 py-2.5 text-sm font-medium text-flashfix-text transition hover:border-flashfix-accent/50 hover:bg-flashfix-accent/10;
+    @apply inline-flex items-center justify-center rounded-lg border border-flashfix-border bg-flashfix-panel2 px-[18px] py-2 text-[13px] font-medium text-flashfix-text transition;
+  }
+
+  .ff-btn-xl {
+    @apply px-5 py-3 text-sm;
   }
 
   .ff-btn-primary {
-    @apply border-flashfix-accent/30 bg-flashfix-accent/10 text-flashfix-text hover:bg-flashfix-accent/20 hover:border-flashfix-accent;
+    @apply border-flashfix-accent bg-flashfix-accent text-white;
   }
 
   .ff-btn-danger {
-    @apply border-flashfix-danger/30 bg-flashfix-danger/10 text-flashfix-text hover:bg-flashfix-danger/20 hover:border-flashfix-danger;
+    @apply border-flashfix-danger bg-flashfix-danger text-white;
   }
 
   .ff-btn-ghost {
-    @apply border-transparent bg-transparent text-flashfix-muted hover:border-flashfix-border hover:bg-flashfix-panel2 hover:text-flashfix-text;
+    @apply bg-transparent text-flashfix-text;
+  }
+
+  .ff-btn:hover {
+    @apply border-flashfix-accent bg-flashfix-panel text-flashfix-text;
+  }
+
+  .ff-btn-primary:hover {
+    @apply bg-flashfix-accentHover border-flashfix-accentHover text-white;
+  }
+
+  .ff-btn-danger:hover {
+    @apply bg-flashfix-danger border-flashfix-danger text-white;
   }
 
   .ff-btn:disabled {
-    @apply cursor-not-allowed opacity-50 hover:border-flashfix-border hover:bg-flashfix-panel2 hover:text-flashfix-text;
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  .ff-link-btn {
+    @apply inline-flex items-center border-0 bg-transparent px-0 py-0 text-[13px] font-medium text-flashfix-muted underline-offset-4 transition hover:text-flashfix-text hover:underline;
+  }
+
+  .ff-link-btn:disabled {
+    @apply cursor-not-allowed text-flashfix-muted opacity-50 no-underline;
   }
 
   .ff-input {
-    @apply w-full rounded-2xl border border-flashfix-border bg-flashfix-panel2 px-4 py-2.5 text-sm text-flashfix-text outline-none transition placeholder:text-flashfix-dim focus:border-flashfix-accent focus:ring-2 focus:ring-flashfix-accent/20;
+    @apply w-full rounded-lg border border-flashfix-border bg-flashfix-bg px-3 py-2 text-[13px] text-flashfix-text outline-none placeholder:text-flashfix-muted;
   }
 
   .ff-panel-box {
-    @apply rounded-2xl border border-flashfix-border bg-[#0B0D12]/90 p-4 shadow-insetSoft;
+    @apply rounded-lg border border-flashfix-border bg-flashfix-bg p-4;
   }
 
   .ff-pre {
-    @apply overflow-auto rounded-2xl border border-flashfix-border bg-[#090B10] p-4 font-mono text-xs leading-6 text-flashfix-text;
+    @apply overflow-auto rounded-lg border border-flashfix-border bg-flashfix-bg p-4 font-mono text-[12px] leading-6 text-flashfix-text;
   }
 
   .ff-table {
-    @apply min-w-full border-separate border-spacing-0 overflow-hidden rounded-2xl border border-flashfix-border bg-[#0B0D12]/90;
+    @apply min-w-full border-separate border-spacing-0 overflow-hidden rounded-lg border border-flashfix-border bg-flashfix-bg;
   }
 
   .ff-table thead th {
-    @apply border-b border-flashfix-border bg-flashfix-panel2 px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-flashfix-dim;
+    @apply border-b border-flashfix-border bg-flashfix-panel2 px-4 py-3 text-left text-[11px] font-medium uppercase tracking-[0.18em] text-flashfix-muted;
   }
 
   .ff-table tbody td {
-    @apply border-b border-flashfix-border px-4 py-3 text-sm text-flashfix-text;
+    @apply border-b border-flashfix-border px-4 py-3 text-[13px] text-flashfix-text;
   }
 
   .ff-table tbody tr:last-child td {
@@ -275,11 +368,11 @@
   }
 
   .ff-details {
-    @apply rounded-2xl border border-flashfix-border bg-flashfix-panel2/70 p-3;
+    @apply rounded-lg border border-flashfix-border bg-flashfix-panel2 px-4 py-3;
   }
 
   .ff-details summary {
-    @apply cursor-pointer list-none text-sm font-medium text-flashfix-text;
+    @apply cursor-pointer list-none text-[13px] font-medium text-flashfix-text;
   }
 
   .ff-details summary::-webkit-details-marker {
@@ -287,19 +380,135 @@
   }
 
   .ff-progress {
-    @apply h-2 w-full overflow-hidden rounded-full bg-flashfix-panel2;
+    @apply h-1 w-full overflow-hidden rounded-full bg-flashfix-border;
   }
 
   .ff-progress-bar {
-    @apply h-full rounded-full bg-gradient-to-r from-flashfix-accent to-flashfix-info transition-[width] duration-300;
+    @apply h-full rounded-full bg-flashfix-accent transition-[width] duration-300;
   }
 
-  .ff-log-console {
-    @apply flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-flashfix-border bg-[#090B10]/95;
+  .ff-device-stage {
+    @apply space-y-3;
+  }
+
+  .ff-device-empty {
+    @apply flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-flashfix-border bg-flashfix-bg px-6 py-8 text-center;
+  }
+
+  .ff-device-empty-copy {
+    @apply max-w-lg;
+  }
+
+  .ff-device-empty-title {
+    @apply mt-2 text-[22px] font-semibold text-flashfix-text;
+  }
+
+  .ff-device-empty-text {
+    @apply mt-2 text-sm text-flashfix-muted;
+  }
+
+  .ff-device-connected {
+    @apply space-y-3;
+  }
+
+  .ff-device-summary-card {
+    @apply rounded-lg border border-flashfix-border bg-flashfix-panel2 p-4;
+  }
+
+  .ff-device-summary-grid {
+    @apply mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto];
+  }
+
+  .ff-device-links {
+    @apply flex flex-wrap items-center gap-4;
+  }
+
+  .ff-dropzone {
+    @apply rounded-lg border border-dashed border-flashfix-border bg-flashfix-bg p-5;
+  }
+
+  .ff-dropzone.is-populated {
+    @apply border-flashfix-accent;
+  }
+
+  .ff-dropzone.is-dragover {
+    @apply border-flashfix-accent bg-flashfix-panel2;
+  }
+
+  .ff-dropzone-copy {
+    @apply text-[15px] font-medium text-flashfix-text;
+  }
+
+  .ff-dropzone-card {
+    @apply mt-4;
+  }
+
+  .ff-summary-line {
+    @apply mt-2 text-sm text-flashfix-muted;
+  }
+
+  .ff-chip-grid {
+    @apply grid gap-2 sm:grid-cols-2 xl:grid-cols-5;
+  }
+
+  .ff-chip {
+    @apply flex items-center justify-between rounded-lg border border-flashfix-border bg-flashfix-panel2 px-3 py-2 text-[13px];
+  }
+
+  .ff-chip--success {
+    @apply border-flashfix-success/30 bg-flashfix-success/10;
+  }
+
+  .ff-chip--warning {
+    @apply border-flashfix-warning/30 bg-flashfix-warning/10;
+  }
+
+  .ff-chip--muted {
+    @apply border-flashfix-border bg-flashfix-panel2;
+  }
+
+  .ff-chip-label {
+    @apply font-medium text-flashfix-text;
+  }
+
+  .ff-chip-status {
+    @apply text-[11px] font-medium text-flashfix-muted;
+  }
+
+  .ff-route-list {
+    @apply space-y-2;
+  }
+
+  .ff-route-row {
+    @apply flex items-center justify-between gap-3 rounded-lg border border-flashfix-border bg-flashfix-bg px-3 py-3;
+  }
+
+  .ff-route-label {
+    @apply text-[11px] font-medium uppercase tracking-[0.18em] text-flashfix-muted;
+  }
+
+  .ff-route-path {
+    @apply mt-1 max-w-[18rem] truncate text-[13px] text-flashfix-text sm:max-w-[28rem];
+  }
+
+  .ff-copy-btn {
+    @apply inline-flex h-8 w-8 flex-none items-center justify-center rounded-md border border-flashfix-border bg-flashfix-panel2 text-sm text-flashfix-text transition hover:border-flashfix-accent hover:bg-flashfix-panel;
+  }
+
+  .ff-settings-actions {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .ff-disclaimer {
+    @apply mt-4 rounded-lg border border-flashfix-border bg-flashfix-bg p-4 text-sm leading-6 text-flashfix-muted;
+  }
+
+  .ff-sr-only {
+    @apply sr-only;
   }
 
   .ff-log-toolbar {
-    @apply flex flex-col gap-3 border-b border-flashfix-border bg-flashfix-panel2/80 p-3 lg:flex-row lg:items-center lg:justify-between;
+    @apply flex flex-col gap-3 border-b border-flashfix-border px-3 py-3 lg:flex-row lg:items-center lg:justify-between;
   }
 
   .ff-log-toolbar-group {
@@ -307,47 +516,51 @@
   }
 
   .ff-log-stream {
-    @apply min-h-0 flex-1 overflow-auto px-3 py-2 font-mono text-xs leading-6;
+    @apply max-h-[32rem] overflow-auto px-3 py-3 font-mono text-[12px] leading-5;
   }
 
   .ff-log-empty {
-    @apply flex h-full items-center justify-center text-sm text-flashfix-dim;
+    @apply flex h-24 items-center justify-center text-sm text-flashfix-muted;
   }
 
   .ff-log-line {
-    @apply mb-2 rounded-2xl border border-transparent px-3 py-2 transition;
+    @apply mb-2 rounded-lg border border-transparent px-3 py-2;
   }
 
   .ff-log-line:hover {
-    @apply border-flashfix-border bg-flashfix-panel2/60;
+    @apply border-flashfix-border bg-flashfix-panel2;
   }
 
   .ff-log-meta {
-    @apply flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.72rem];
+    @apply flex flex-wrap items-center gap-2 text-[11px];
   }
 
   .ff-log-time {
-    @apply text-flashfix-dim;
+    @apply font-mono text-[11px] text-flashfix-muted;
   }
 
   .ff-log-command {
-    @apply rounded-full border border-flashfix-border bg-flashfix-panel2 px-2.5 py-0.5 text-flashfix-muted;
+    @apply rounded-full border border-flashfix-border bg-flashfix-panel2 px-2 py-0.5 text-flashfix-muted;
   }
 
   .ff-log-level {
-    @apply rounded-full px-2.5 py-0.5 font-semibold uppercase tracking-[0.16em];
+    @apply rounded-full px-2 py-0.5 font-medium uppercase tracking-[0.14em];
   }
 
   .ff-log-message {
-    @apply mt-1 whitespace-pre-wrap text-sm text-flashfix-text;
+    @apply mt-1 text-[13px] text-flashfix-text;
   }
 
   .ff-log-details-btn {
-    @apply mt-2 text-[0.72rem] font-medium text-flashfix-accent hover:text-flashfix-accentHover;
+    @apply mt-2 hidden text-[11px] font-medium text-flashfix-accent hover:text-flashfix-accentHover;
+  }
+
+  .ff-log-line:hover .ff-log-details-btn {
+    @apply inline-block;
   }
 
   .ff-log-details {
-    @apply mt-2 hidden rounded-xl border border-flashfix-border bg-[#07090e] p-3 text-[0.72rem] text-flashfix-text;
+    @apply mt-2 hidden rounded-lg border border-flashfix-border bg-flashfix-bg p-3 text-[12px] text-flashfix-text;
   }
 
   .ff-log-details.is-open {
@@ -355,6 +568,35 @@
   }
 
   .ff-log-details pre {
-    @apply mt-0 max-h-72 overflow-auto whitespace-pre rounded-xl border border-flashfix-border bg-[#07090e] p-3 font-mono text-[0.72rem] leading-6 text-flashfix-text;
+    @apply mt-0 max-h-72 overflow-auto whitespace-pre rounded-md border border-flashfix-border bg-flashfix-bg p-3 font-mono text-[12px] leading-5 text-flashfix-text;
+  }
+
+  .ff-plan-warnings {
+    @apply mt-3;
+  }
+
+  .ff-switch {
+    @apply inline-flex items-center;
+  }
+
+  .ff-switch input {
+    @apply sr-only;
+  }
+
+  .ff-switch-track {
+    @apply relative h-5 w-9 rounded-full border border-flashfix-border bg-flashfix-panel2 transition;
+  }
+
+  .ff-switch-track::after {
+    content: "";
+    @apply absolute left-[2px] top-[2px] h-3.5 w-3.5 rounded-full bg-flashfix-muted transition;
+  }
+
+  .ff-switch input:checked + .ff-switch-track {
+    @apply border-flashfix-success bg-flashfix-success/20;
+  }
+
+  .ff-switch input:checked + .ff-switch-track::after {
+    @apply translate-x-4 bg-flashfix-success;
   }
 }

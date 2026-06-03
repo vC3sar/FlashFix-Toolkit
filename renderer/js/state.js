@@ -43,7 +43,7 @@ export const appState = {
     clearedAt: 0,
   },
   ui: {
-    activeSection: "dashboard",
+    activeSection: "workspace",
   },
 };
 

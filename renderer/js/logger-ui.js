@@ -25,6 +25,7 @@ export class LoggerUI {
   constructor({
     streamEl,
     countEl,
+    summaryEl,
     filterButtons,
     searchInput,
     clearBtn,
@@ -34,6 +35,7 @@ export class LoggerUI {
   }) {
     this.streamEl = streamEl;
     this.countEl = countEl;
+    this.summaryEl = summaryEl;
     this.filterButtons = Array.from(filterButtons);
     this.searchInput = searchInput;
     this.clearBtn = clearBtn;
@@ -157,6 +159,12 @@ export class LoggerUI {
     const entries = this.getVisibleEntries();
     this.countEl.textContent = `${entries.length} visible${this.filter !== "all" ? ` · ${this.filter}` : ""}`;
 
+    if (this.summaryEl) {
+      const lastEntry = entries.at(-1);
+      const lastMessage = lastEntry ? lastEntry.message : "sin actividad";
+      this.summaryEl.textContent = `${entries.length} mensajes · último: ${lastMessage}`;
+    }
+
     this.streamEl.replaceChildren();
 
     if (entries.length === 0) {
@@ -201,11 +209,11 @@ export class LoggerUI {
 
     wrapper.append(meta, message);
 
-    if (entry.expandable && entry.details !== null && entry.details !== undefined) {
-      const detailsBtn = document.createElement("button");
-      detailsBtn.type = "button";
-      detailsBtn.className = "ff-log-details-btn";
-      detailsBtn.textContent = "Ver detalles";
+      if (entry.expandable && entry.details !== null && entry.details !== undefined) {
+        const detailsBtn = document.createElement("button");
+        detailsBtn.type = "button";
+        detailsBtn.className = "ff-log-details-btn";
+        detailsBtn.textContent = "Ver detalles";
 
       const details = document.createElement("div");
       details.className = "ff-log-details";

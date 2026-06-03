@@ -7,7 +7,7 @@
   "scripts": {
     "build:styles": "tailwindcss -c tailwind.config.js -i ./renderer/input.css -o ./renderer/styles.css",
     "watch:styles": "tailwindcss -c tailwind.config.js -i ./renderer/input.css -o ./renderer/styles.css --watch",
-    "start": "powershell -ExecutionPolicy Bypass -File .\\scripts\\start-app.ps1",
+    "start": "cls && powershell -ExecutionPolicy Bypass -File .\\scripts\\start-app.ps1",
     "dev": "powershell -ExecutionPolicy Bypass -File .\\scripts\\start-app.ps1",
     "publish:core": "powershell -ExecutionPolicy Bypass -File .\\scripts\\publish-core.ps1",
     "check": "node --check main.js && node --check preload.js"
