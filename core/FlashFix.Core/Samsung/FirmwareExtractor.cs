@@ -102,6 +102,7 @@ internal sealed class FirmwareExtractor
             var preparedPath = rawPath;
             var preparedName = safeName;
             var isLz4 = _lz4.IsLz4(safeName);
+            var decompressionStatus = "not_applicable";
             if (isLz4)
             {
                 var estimatedSize = TryEstimateLz4Size(filePath, originalName);
@@ -112,6 +113,7 @@ internal sealed class FirmwareExtractor
                 if (shouldSkipDecompression)
                 {
                     compressedContainerCount++;
+                    decompressionStatus = "kept_compressed";
                     logger.WriteLine($"LZ4 left compressed for analysis: {packageType}:{safeName} (estimated size {estimatedSize})");
                     ConsoleProtocol.Log("info", $"LZ4 left compressed for analysis: {packageType}:{safeName}", false, new
                     {
@@ -126,9 +128,13 @@ internal sealed class FirmwareExtractor
                     var decompressed = await _lz4.DecompressIfNeededAsync(rawPath, packageRoot, cancellationToken);
                     preparedPath = decompressed.PreparedPath;
                     preparedName = Path.GetFileName(preparedPath);
+                    decompressionStatus = string.Equals(preparedPath, rawPath, StringComparison.OrdinalIgnoreCase)
+                        ? "failed"
+                        : "success";
                     if (decompressed.Warnings.Count > 0 && preparedPath == rawPath)
                     {
                         compressedContainerCount++;
+                        decompressionStatus = "kept_compressed";
                         logger.WriteLine($"LZ4 left compressed for analysis: {packageType}:{safeName}");
                         ConsoleProtocol.Log("info", $"LZ4 left compressed for analysis: {packageType}:{safeName}", false, new
                         {
@@ -140,7 +146,40 @@ internal sealed class FirmwareExtractor
                 }
             }
 
+            var imageKind = FirmwareImageClassifier.ClassifyImageKind(safeName, preparedName, decompressionStatus);
             var mapped = PartitionMapper.TryMap(preparedName, out var partition, out var confidence);
+            var suggestedPartition = string.Empty;
+            var status = "unknown";
+            var reason = FirmwareImageClassifier.GetReasonForKind(imageKind);
+            var warnings = new List<string>();
+
+            if (FirmwareImageClassifier.IsNonFlashableKind(imageKind))
+            {
+                status = "non_flashable";
+            }
+            else if (string.Equals(imageKind, "oversized_container", StringComparison.OrdinalIgnoreCase))
+            {
+                status = mapped ? "mapped_but_not_ready" : "unmapped";
+                if (mapped)
+                {
+                    suggestedPartition = partition;
+                }
+            }
+            else if (mapped)
+            {
+                status = "mapped";
+                suggestedPartition = partition;
+            }
+            else
+            {
+                status = "unmapped";
+            }
+
+            if (string.Equals(imageKind, "oversized_container", StringComparison.OrdinalIgnoreCase))
+            {
+                warnings.Add($"LZ4 container left compressed for analysis: {safeName}");
+            }
+
             package.Images.Add(new FirmwareImage
             {
                 SourcePackage = packageType,
@@ -148,13 +187,14 @@ internal sealed class FirmwareExtractor
                 PreparedName = preparedName,
                 PreparedPath = preparedPath,
                 SizeBytes = new FileInfo(preparedPath).Length,
-                SuggestedPartition = partition,
-                Confidence = confidence,
-                Status = mapped ? "mapped" : "unmapped",
+                SuggestedPartition = suggestedPartition,
+                Confidence = mapped ? confidence : "low",
+                Status = status,
+                ImageKind = imageKind,
+                DecompressionStatus = decompressionStatus,
+                Reason = reason,
                 IsLz4 = isLz4,
-                Warnings = mapped
-                    ? new List<string>()
-                    : new List<string> { "Image not mapped to a known partition" },
+                Warnings = warnings,
             });
 
             logger.WriteJson(new

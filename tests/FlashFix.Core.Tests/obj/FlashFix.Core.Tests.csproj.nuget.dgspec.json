@@ -1,0 +1,164 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\vCesar\\OneDrive\\Escritorio\\Proyectos\\FlashFix Toolkit\\tests\\FlashFix.Core.Tests\\FlashFix.Core.Tests.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\vCesar\\OneDrive\\Escritorio\\Proyectos\\FlashFix Toolkit\\core\\FlashFix.Core\\FlashFix.Core.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\vCesar\\OneDrive\\Escritorio\\Proyectos\\FlashFix Toolkit\\core\\FlashFix.Core\\FlashFix.Core.csproj",
+        "projectName": "FlashFix.Core",
+        "projectPath": "C:\\Users\\vCesar\\OneDrive\\Escritorio\\Proyectos\\FlashFix Toolkit\\core\\FlashFix.Core\\FlashFix.Core.csproj",
+        "packagesPath": "C:\\Users\\vCesar\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\vCesar\\OneDrive\\Escritorio\\Proyectos\\FlashFix Toolkit\\core\\FlashFix.Core\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\vCesar\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0-windows"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0-windows7.0": {
+            "targetAlias": "net8.0-windows",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0-windows7.0": {
+          "targetAlias": "net8.0-windows",
+          "dependencies": {
+            "K4os.Compression.LZ4.Legacy": {
+              "target": "Package",
+              "version": "[1.2.16, )"
+            },
+            "K4os.Compression.LZ4.Streams": {
+              "target": "Package",
+              "version": "[1.2.16, )"
+            },
+            "SharpOdinClient": {
+              "target": "Package",
+              "version": "[1.0.2, )"
+            },
+            "System.IO.Ports": {
+              "target": "Package",
+              "version": "[10.0.8, )"
+            },
+            "System.Management": {
+              "target": "Package",
+              "version": "[10.0.8, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Users\\vCesar\\OneDrive\\Escritorio\\Proyectos\\FlashFix Toolkit\\.dotnet-local\\sdk\\8.0.421/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "C:\\Users\\vCesar\\OneDrive\\Escritorio\\Proyectos\\FlashFix Toolkit\\tests\\FlashFix.Core.Tests\\FlashFix.Core.Tests.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\vCesar\\OneDrive\\Escritorio\\Proyectos\\FlashFix Toolkit\\tests\\FlashFix.Core.Tests\\FlashFix.Core.Tests.csproj",
+        "projectName": "FlashFix.Core.Tests",
+        "projectPath": "C:\\Users\\vCesar\\OneDrive\\Escritorio\\Proyectos\\FlashFix Toolkit\\tests\\FlashFix.Core.Tests\\FlashFix.Core.Tests.csproj",
+        "packagesPath": "C:\\Users\\vCesar\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\vCesar\\OneDrive\\Escritorio\\Proyectos\\FlashFix Toolkit\\tests\\FlashFix.Core.Tests\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\vCesar\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0-windows"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0-windows7.0": {
+            "targetAlias": "net8.0-windows",
+            "projectReferences": {
+              "C:\\Users\\vCesar\\OneDrive\\Escritorio\\Proyectos\\FlashFix Toolkit\\core\\FlashFix.Core\\FlashFix.Core.csproj": {
+                "projectPath": "C:\\Users\\vCesar\\OneDrive\\Escritorio\\Proyectos\\FlashFix Toolkit\\core\\FlashFix.Core\\FlashFix.Core.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0-windows7.0": {
+          "targetAlias": "net8.0-windows",
+          "dependencies": {
+            "Microsoft.NET.Test.Sdk": {
+              "target": "Package",
+              "version": "[17.12.0, )"
+            },
+            "xunit": {
+              "target": "Package",
+              "version": "[2.9.2, )"
+            },
+            "xunit.runner.visualstudio": {
+              "target": "Package",
+              "version": "[2.8.2, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Users\\vCesar\\OneDrive\\Escritorio\\Proyectos\\FlashFix Toolkit\\.dotnet-local\\sdk\\8.0.421/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

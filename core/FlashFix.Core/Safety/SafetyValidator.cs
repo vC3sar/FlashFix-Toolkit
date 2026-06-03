@@ -25,6 +25,11 @@ internal static class SafetyValidator
                 continue;
             }
 
+            if (string.IsNullOrWhiteSpace(item.Partition))
+            {
+                continue;
+            }
+
             if (string.Equals(item.Partition, "USERDATA", StringComparison.OrdinalIgnoreCase))
             {
                 blocking.Add(Warnings.UserDataExcluded);

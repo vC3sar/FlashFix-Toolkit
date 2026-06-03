@@ -161,11 +161,13 @@ function applyFirmwareFolder(folder) {
 
   state.firmware.path = folder;
   state.firmware.analysis = null;
+  state.firmware.binary = null;
   state.firmware.packages = [];
   state.flashPlan.path = null;
   state.flashPlan.items = [];
   state.flashPlan.summary = null;
   state.flashPlan.warnings = [];
+  state.flashPlan.binary = null;
   renderAll();
   logger.add({
     level: "info",
@@ -402,6 +404,7 @@ function applyCommandData(command, data) {
     state.firmware.analysis = data;
     state.firmware.path = data.sourcePath || state.firmware.path;
     state.firmware.packages = Array.isArray(data.images) ? data.images : [];
+    state.firmware.binary = data.binary || null;
   }
 
   if (command === "build-plan") {
@@ -409,6 +412,7 @@ function applyCommandData(command, data) {
     state.flashPlan.items = Array.isArray(data.items) ? data.items : [];
     state.flashPlan.summary = data.summary || state.flashPlan.summary;
     state.flashPlan.warnings = Array.isArray(data.warnings) ? data.warnings : [];
+    state.flashPlan.binary = data.binary || data.firmware?.binary || null;
   }
 
   if (command === "flash-plan") {
@@ -416,6 +420,7 @@ function applyCommandData(command, data) {
     state.flashPlan.summary = data.summary || state.flashPlan.summary;
     state.flashPlan.warnings = Array.isArray(data.warnings) ? data.warnings : [];
     state.flashPlan.resultPath = data.resultPath || state.flashPlan.resultPath;
+    state.flashPlan.binary = data.binary || state.flashPlan.binary;
   }
 }
 

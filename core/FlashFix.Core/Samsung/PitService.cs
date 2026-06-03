@@ -21,31 +21,63 @@ internal sealed class PitService
 
     public async Task<(List<PitPartition> Partitions, string TxtPath, string JsonPath)> ReadPitAsync(CancellationToken cancellationToken = default)
     {
-        var readResult = await _odin.ReadPitAsync();
+        var bound = await _odin.FindAndSetDownloadModeAsync();
+        if (!bound)
+        {
+            throw new InvalidOperationException(Warnings.NoDevice);
+        }
+
+        ReadPitResult readResult;
+        try
+        {
+            readResult = await _odin.ReadPitAsync();
+        }
+        catch (NullReferenceException ex)
+        {
+            throw new InvalidOperationException(
+                "SharpOdinClient did not return a valid PIT session. Re-run device detection and try again.",
+                ex);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(
+                string.IsNullOrWhiteSpace(ex.Message) ? "PIT read failed" : ex.Message,
+                ex);
+        }
+
         if (!readResult.Result || readResult.Pit is null || readResult.Pit.Count == 0)
         {
-            var message = string.IsNullOrWhiteSpace(readResult.error) ? Warnings.NoDevice : readResult.error;
+            var message = string.IsNullOrWhiteSpace(readResult.error)
+                ? "No PIT data was returned by the connected device."
+                : readResult.error;
             throw new InvalidOperationException(message);
         }
 
-        var partitions = readResult.Pit.Select(ToModel).ToList();
+        var pitPartitions = readResult.Pit.Select(ToModel).ToList();
         var stamp = AppPaths.Timestamp();
         var txtPath = Path.Combine(AppPaths.LogsDir, $"pit-{stamp}.txt");
         var jsonPath = Path.Combine(AppPaths.LogsDir, $"pit-{stamp}.json");
 
-        await File.WriteAllTextAsync(txtPath, BuildText(partitions), cancellationToken);
-        await File.WriteAllTextAsync(jsonPath, JsonSerializer.Serialize(partitions, ConsoleProtocol.Options), cancellationToken);
+        await File.WriteAllTextAsync(txtPath, BuildText(pitPartitions), cancellationToken);
+        await File.WriteAllTextAsync(jsonPath, JsonSerializer.Serialize(pitPartitions, ConsoleProtocol.Options), cancellationToken);
+
+        var pitLogData = new
+        {
+            txtPath,
+            jsonPath,
+            partitionCount = pitPartitions.Count,
+        };
 
         _logger.WriteJson(new
         {
             type = "log",
             level = "info",
             message = "PIT saved",
-            data = new { txtPath, jsonPath, partitions = partitions.Count },
+            data = pitLogData,
         });
-        ConsoleProtocol.Log("info", "PIT saved", false, new { txtPath, jsonPath, partitions = partitions.Count });
+        ConsoleProtocol.Log("info", "PIT saved", false, pitLogData);
 
-        return (partitions, txtPath, jsonPath);
+        return (pitPartitions, txtPath, jsonPath);
     }
 
     public static PitPartition ToModel(TPIT_Entry entry)

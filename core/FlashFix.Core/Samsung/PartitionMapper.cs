@@ -2,64 +2,60 @@ namespace FlashFix.Core.Samsung;
 
 internal static class PartitionMapper
 {
+    private static readonly Dictionary<string, string> Mappings = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["boot.img"] = "BOOT",
+        ["init-boot.img"] = "INIT_BOOT",
+        ["vendor-boot.img"] = "VENDOR_BOOT",
+        ["recovery.img"] = "RECOVERY",
+        ["dtbo.img"] = "DTBO",
+        ["vbmeta.img"] = "VBMETA",
+        ["vbmeta-system.img"] = "VBMETA_SYSTEM",
+        ["super.img"] = "SUPER",
+        ["userdata.img"] = "USERDATA",
+        ["cache.img"] = "CACHE",
+        ["system.img"] = "SYSTEM",
+        ["vendor.img"] = "VENDOR",
+        ["product.img"] = "PRODUCT",
+        ["odm.img"] = "ODM",
+        ["modem.bin"] = "MODEM",
+        ["md1img.img"] = "MD1IMG",
+        ["preloader.img"] = "PRELOADER",
+        ["lk-verified.img"] = "LK_VERIFIED",
+        ["lk.img"] = "LK",
+        ["dpm-verified.img"] = "DPM",
+        ["gz-verified.img"] = "GZ",
+        ["spmfw-verified.img"] = "SPMFW",
+        ["scp-verified.img"] = "SCP",
+        ["sspm-verified.img"] = "SSPM",
+        ["tee-verified.img"] = "TEE",
+        ["mcupm-verified.img"] = "MCUPM",
+        ["param.bin"] = "PARAM",
+        ["up-param.bin"] = "UP_PARAM",
+        ["uh.bin"] = "UH",
+        ["efuse.img"] = "EFUSE",
+        ["misc.bin"] = "MISC",
+        ["prism.img"] = "PRISM",
+        ["optics.img"] = "OPTICS",
+        ["omr.img"] = "OMR",
+        ["hidden.img"] = "HIDDEN",
+    };
+
     public static bool TryMap(string fileName, out string partition, out string confidence)
     {
         var normalized = Normalize(fileName);
-
-        switch (normalized)
+        if (Mappings.TryGetValue(normalized, out partition!))
         {
-            case "boot.img":
-                partition = "BOOT";
-                confidence = "high";
-                return true;
-            case "recovery.img":
-                partition = "RECOVERY";
-                confidence = "high";
-                return true;
-            case "system.img":
-                partition = "SYSTEM";
-                confidence = "high";
-                return true;
-            case "vendor.img":
-                partition = "VENDOR";
-                confidence = "high";
-                return true;
-            case "product.img":
-                partition = "PRODUCT";
-                confidence = "high";
-                return true;
-            case "odm.img":
-                partition = "ODM";
-                confidence = "high";
-                return true;
-            case "vbmeta.img":
-                partition = "VBMETA";
-                confidence = "high";
-                return true;
-            case "dtbo.img":
-                partition = "DTBO";
-                confidence = "high";
-                return true;
-            case "modem.bin":
-                partition = "MODEM";
-                confidence = "high";
-                return true;
-            case "cache.img":
-                partition = "CACHE";
-                confidence = "medium";
-                return true;
-            case "hidden.img":
-                partition = "HIDDEN";
-                confidence = "medium";
-                return true;
-            default:
-                partition = string.Empty;
-                confidence = "low";
-                return false;
+            confidence = "high";
+            return true;
         }
+
+        partition = string.Empty;
+        confidence = "low";
+        return false;
     }
 
-    private static string Normalize(string fileName)
+    public static string Normalize(string fileName)
     {
         var lower = Path.GetFileName(fileName).ToLowerInvariant();
         if (lower.EndsWith(".lz4", StringComparison.OrdinalIgnoreCase))
@@ -67,6 +63,7 @@ internal static class PartitionMapper
             lower = lower[..^4];
         }
 
+        lower = lower.Replace('_', '-').Replace(' ', '-');
         return lower;
     }
 }

@@ -37,6 +37,7 @@ internal sealed class BuildFlashPlanCommand
                     sourceFirmwarePath = plan.SourceFirmwarePath,
                     pitPath = plan.PitPath,
                     summary = plan.Summary,
+                    binary = plan.Binary,
                     warnings = plan.Warnings,
                     items = plan.Items,
                 },

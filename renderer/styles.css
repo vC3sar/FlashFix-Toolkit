@@ -1395,6 +1395,53 @@ body {
   border-bottom-width: 0px;
 }
 
+.ff-table-group-row th {
+  border-bottom-width: 1px;
+  --tw-border-opacity: 1;
+  border-color: rgb(42 45 58 / var(--tw-border-opacity, 1));
+  --tw-bg-opacity: 1;
+  background-color: rgb(23 26 34 / var(--tw-bg-opacity, 1));
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  text-align: left;
+}
+
+.ff-table-group-title {
+  font-size: 13px;
+  font-weight: 500;
+  --tw-text-opacity: 1;
+  color: rgb(234 234 234 / var(--tw-text-opacity, 1));
+}
+
+.ff-table-group-meta {
+  margin-top: 0.25rem;
+  font-size: 12px;
+  --tw-text-opacity: 1;
+  color: rgb(122 127 142 / var(--tw-text-opacity, 1));
+}
+
+.ff-plan-cell-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 500;
+  --tw-text-opacity: 1;
+  color: rgb(234 234 234 / var(--tw-text-opacity, 1));
+}
+
+.ff-plan-cell-meta {
+  margin-top: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  --tw-text-opacity: 1;
+  color: rgb(122 127 142 / var(--tw-text-opacity, 1));
+}
+
 .ff-muted {
   font-size: 0.875rem;
   line-height: 1.25rem;

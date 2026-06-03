@@ -56,6 +56,11 @@ internal sealed class FirmwareAnalyzer
         analysis.Warnings = analysis.Warnings
             .Distinct(StringComparer.Ordinal)
             .ToList();
+        analysis.Binary = BinaryCompatibilityDetector.Detect(
+            firmwareFolder,
+            string.Join(' ', analysis.FoundPackages),
+            string.Join(' ', analysis.Images.Select(image => image.OriginalName)),
+            string.Join(' ', analysis.Images.Select(image => image.PreparedName)));
 
         var analysisPath = Path.Combine(AppPaths.LogsDir, $"firmware-analysis-{AppPaths.Timestamp()}.json");
         analysis.AnalysisPath = analysisPath;

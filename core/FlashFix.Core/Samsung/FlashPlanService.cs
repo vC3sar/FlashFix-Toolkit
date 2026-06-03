@@ -39,12 +39,13 @@ internal sealed class FlashPlanService
             AnalysisPath = analysis.AnalysisPath,
             Device = device,
             Firmware = analysis,
+            Binary = analysis.Binary,
             PitPartitions = pitPartitions,
         };
 
         foreach (var image in analysis.Images)
         {
-            var item = BuildItem(image, pitPartitions);
+            var item = FlashPlanRules.CreateItem(image, pitPartitions);
             plan.Items.Add(item);
         }
 
@@ -53,8 +54,21 @@ internal sealed class FlashPlanService
         plan.Summary.Excluded = plan.Items.Count - plan.Summary.Included;
         plan.Summary.Warnings = plan.Items.Sum(x => x.Warnings.Count);
         plan.Summary.CriticalWarnings = plan.Items.Count(x => x.Include && x.Warnings.Count > 0);
+        plan.Summary.PitPartitionsLoaded = pitPartitions.Count;
+        plan.Summary.ReadyCandidates = plan.Items.Count(x => string.Equals(x.Category, "ready", StringComparison.OrdinalIgnoreCase));
+        plan.Summary.MappedButNotReady = plan.Items.Count(x => string.Equals(x.Category, "mapped_but_not_ready", StringComparison.OrdinalIgnoreCase));
+        plan.Summary.HighRiskExcluded = plan.Items.Count(x => string.Equals(x.Category, "high_risk_excluded", StringComparison.OrdinalIgnoreCase));
+        plan.Summary.Unmapped = plan.Items.Count(x => string.Equals(x.Category, "unmapped", StringComparison.OrdinalIgnoreCase));
+        plan.Summary.Auxiliary = plan.Items.Count(x => string.Equals(x.Category, "auxiliary", StringComparison.OrdinalIgnoreCase));
+        plan.Summary.Metadata = plan.Items.Count(x => string.Equals(x.Category, "metadata", StringComparison.OrdinalIgnoreCase));
+        plan.Summary.PitFiles = plan.Items.Count(x => string.Equals(x.Category, "pit_file", StringComparison.OrdinalIgnoreCase));
+        plan.Summary.Unknown = plan.Items.Count(x => string.Equals(x.Category, "unknown", StringComparison.OrdinalIgnoreCase));
         plan.Warnings.AddRange(analysis.Warnings);
         plan.Warnings.AddRange(plan.Items.SelectMany(x => x.Warnings));
+        plan.Warnings = plan.Warnings
+            .Where(warning => !string.IsNullOrWhiteSpace(warning))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
 
         var planPath = Path.Combine(AppPaths.LogsDir, $"flash-plan-{AppPaths.Timestamp()}.json");
         plan.PlanPath = planPath;
@@ -122,6 +136,7 @@ internal sealed class FlashPlanService
             planPath = planJsonPath,
             included = flashFiles.Count,
             device = device,
+            binary = plan.Binary,
             warnings = plan.Warnings,
             summary = plan.Summary,
         }, ConsoleProtocol.Options), cancellationToken);
@@ -139,55 +154,4 @@ internal sealed class FlashPlanService
         return plan;
     }
 
-    private static FlashPlanItem BuildItem(FirmwareImage image, List<PitPartition> pitPartitions)
-    {
-        var item = new FlashPlanItem
-        {
-            SourcePackage = image.SourcePackage,
-            Image = image.PreparedName,
-            FilePath = image.PreparedPath,
-            Partition = image.SuggestedPartition,
-            Confidence = image.Confidence,
-            Status = image.Status,
-        };
-
-        var partitionExists = pitPartitions.Any(p => string.Equals(p.Name, item.Partition, StringComparison.OrdinalIgnoreCase));
-        item.PitStatus = partitionExists ? "matched" : "missing";
-        item.Include = image.Status == "mapped" && partitionExists && AllowedPartitions.Contains(item.Partition);
-        item.Risk = item.Partition is "CSC" ? "high" : item.Partition is "HOME_CSC" ? "medium" : "medium";
-        item.Warnings = new List<string>(image.Warnings);
-
-        if (!item.Include)
-        {
-            item.Warnings.Add($"Excluded from plan: {item.Image}");
-        }
-
-        if (string.Equals(item.Partition, "CSC", StringComparison.OrdinalIgnoreCase))
-        {
-            item.Warnings.Add(Warnings.CscMayWipe);
-        }
-
-        if (string.Equals(item.Partition, "HOME_CSC", StringComparison.OrdinalIgnoreCase))
-        {
-            item.Warnings.Add(Warnings.HomeCscNotGuaranteed);
-        }
-
-        if (!AllowedPartitions.Contains(item.Partition))
-        {
-            item.Warnings.Add($"Partition not allowed: {item.Partition}");
-        }
-
-        if (!partitionExists)
-        {
-            item.Warnings.Add($"Partition not found in PIT: {item.Partition}");
-        }
-
-        if (string.Equals(item.Partition, "USERDATA", StringComparison.OrdinalIgnoreCase))
-        {
-            item.Include = false;
-            item.Warnings.Add(Warnings.UserDataExcluded);
-        }
-
-        return item;
-    }
 }

@@ -15,6 +15,7 @@ export const appState = {
     path: null,
     packages: [],
     analysis: null,
+    binary: null,
   },
   pit: {
     loaded: false,
@@ -28,6 +29,7 @@ export const appState = {
     warnings: [],
     summary: null,
     resultPath: null,
+    binary: null,
   },
   operation: {
     running: false,

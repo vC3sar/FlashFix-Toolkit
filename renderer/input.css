@@ -363,6 +363,26 @@
     @apply border-b-0;
   }
 
+  .ff-table-group-row th {
+    @apply border-b border-flashfix-border bg-flashfix-panel2 px-4 py-3 text-left;
+  }
+
+  .ff-table-group-title {
+    @apply text-[13px] font-medium text-flashfix-text;
+  }
+
+  .ff-table-group-meta {
+    @apply mt-1 text-[12px] text-flashfix-muted;
+  }
+
+  .ff-plan-cell-title {
+    @apply truncate text-[13px] font-medium text-flashfix-text;
+  }
+
+  .ff-plan-cell-meta {
+    @apply mt-1 truncate text-[12px] text-flashfix-muted;
+  }
+
   .ff-muted {
     @apply text-sm text-flashfix-muted;
   }
