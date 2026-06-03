@@ -63,8 +63,12 @@ const els = {
   planPathText: byId("planPathText"),
   planHintText: byId("planHintText"),
   planSummaryBox: byId("planSummaryBox"),
+  planChecklistBox: byId("planChecklistBox"),
   planTableBody: byId("planTableBody"),
   planWarningsBox: byId("planWarningsBox"),
+  installModeCleanBtn: byId("installModeCleanBtn"),
+  installModeKeepDataBtn: byId("installModeKeepDataBtn"),
+  installModeWarningText: byId("installModeWarningText"),
   currentOperationTitle: byId("currentOperationTitle"),
   currentOperationMessage: byId("currentOperationMessage"),
   currentOperationMeta: byId("currentOperationMeta"),
@@ -168,6 +172,8 @@ function applyFirmwareFolder(folder) {
   state.flashPlan.summary = null;
   state.flashPlan.warnings = [];
   state.flashPlan.binary = null;
+  state.flashPlan.installationMode = "clean";
+  state.flashPlan.selectedRegionalPackage = null;
   renderAll();
   logger.add({
     level: "info",
@@ -194,6 +200,8 @@ function updateButtons() {
     els.selectPlanBtn,
     els.flashPlanBtn,
     els.cleanTempBtn,
+    els.installModeCleanBtn,
+    els.installModeKeepDataBtn,
   ].forEach((button) => {
     if (!button) {
       return;
@@ -210,7 +218,8 @@ function updateButtons() {
       els.cleanTempBtn,
     ].includes(button);
 
-    const selectionAction = [els.selectFirmwareBtn, els.selectPitBtn, els.selectPlanBtn].includes(button);
+    const selectionAction = [els.selectFirmwareBtn, els.selectPitBtn, els.selectPlanBtn].includes(button)
+      || [els.installModeCleanBtn, els.installModeKeepDataBtn].includes(button);
 
     button.disabled = (coreAction && (disabled || !backendReady))
       || (selectionAction && disabled);
@@ -322,8 +331,12 @@ function renderPlanSection() {
     pathText: els.planPathText,
     hintText: els.planHintText,
     summaryBox: els.planSummaryBox,
+    checklistBox: els.planChecklistBox,
     tableBody: els.planTableBody,
     warningsBox: els.planWarningsBox,
+    cleanModeBtn: els.installModeCleanBtn,
+    keepDataModeBtn: els.installModeKeepDataBtn,
+    modeWarningText: els.installModeWarningText,
   }, state);
 }
 
@@ -413,6 +426,8 @@ function applyCommandData(command, data) {
     state.flashPlan.summary = data.summary || state.flashPlan.summary;
     state.flashPlan.warnings = Array.isArray(data.warnings) ? data.warnings : [];
     state.flashPlan.binary = data.binary || data.firmware?.binary || null;
+    state.flashPlan.installationMode = data.installationMode || state.flashPlan.installationMode;
+    state.flashPlan.selectedRegionalPackage = data.selectedRegionalPackage || state.flashPlan.selectedRegionalPackage;
   }
 
   if (command === "flash-plan") {
@@ -614,6 +629,20 @@ function wireActions() {
 
   els.cleanTempBtn.addEventListener("click", runCleanTemp);
 
+  const setInstallationMode = (mode) => {
+    state.flashPlan.installationMode = mode === "keep_data" ? "keep_data" : "clean";
+    state.flashPlan.path = null;
+    state.flashPlan.items = [];
+    state.flashPlan.summary = null;
+    state.flashPlan.warnings = [];
+    state.flashPlan.binary = null;
+    state.flashPlan.selectedRegionalPackage = null;
+    renderAll();
+  };
+
+  els.installModeCleanBtn?.addEventListener("click", () => setInstallationMode("clean"));
+  els.installModeKeepDataBtn?.addEventListener("click", () => setInstallationMode("keep_data"));
+
   [els.workspaceTabBtn, els.settingsTabBtn].forEach((button) => {
     if (!button) {
       return;
@@ -768,6 +797,8 @@ function wireActions() {
     state.flashPlan.items = [];
     state.flashPlan.summary = null;
     state.flashPlan.warnings = [];
+    state.flashPlan.binary = null;
+    state.flashPlan.selectedRegionalPackage = null;
     renderAll();
     logger.add({
       level: "info",
@@ -791,7 +822,7 @@ function wireActions() {
 
     setBusy(true);
     try {
-      await buildFlashPlan(state.firmware.path, state.pit.path);
+      await buildFlashPlan(state.firmware.path, state.pit.path, state.flashPlan.installationMode);
     } catch (error) {
       logger.add({
         level: "error",

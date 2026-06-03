@@ -72,6 +72,32 @@ public sealed class PlanRulesTests
             DecompressionStatus = "kept_compressed",
         };
 
+        var pitPartitions = new List<PitPartition>();
+
+        var item = FlashPlanRules.CreateItem(image, pitPartitions);
+
+        Assert.False(item.Include);
+        Assert.Equal("large_but_flashable", item.Status);
+        Assert.Equal("compressed_or_large_but_flashable_candidate", item.Reason);
+        Assert.Equal("large_but_flashable", item.Category);
+        Assert.Contains(item.Warnings, warning => warning.Contains("oversized LZ4 container", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void FlashPlanRules_Marks_Mapped_Super_As_VitalReady_When_Pit_Matches()
+    {
+        var image = new FirmwareImage
+        {
+            OriginalName = "super.img.lz4",
+            PreparedName = "super.img.lz4",
+            PreparedPath = "C:/temp/super.img.lz4",
+            SuggestedPartition = "SUPER",
+            Confidence = "high",
+            Status = "mapped_but_not_ready",
+            ImageKind = "oversized_container",
+            DecompressionStatus = "kept_compressed",
+        };
+
         var pitPartitions = new List<PitPartition>
         {
             new() { Name = "SUPER" },
@@ -79,11 +105,44 @@ public sealed class PlanRulesTests
 
         var item = FlashPlanRules.CreateItem(image, pitPartitions);
 
-        Assert.False(item.Include);
-        Assert.Equal("mapped_but_not_ready", item.Status);
-        Assert.Equal("compressed_or_oversized", item.Reason);
-        Assert.Equal("mapped_but_not_ready", item.Category);
-        Assert.Contains(item.Warnings, warning => warning.Contains("oversized LZ4 container", StringComparison.OrdinalIgnoreCase));
+        Assert.True(item.Include);
+        Assert.Equal("vital_ready", item.Status);
+        Assert.Equal("vital_ready", item.Category);
+        Assert.Equal("super_vital_ready", item.Reason);
+    }
+
+    [Fact]
+    public void FlashPlanPolicy_Uses_Csc_For_Clean_Mode_And_Excludes_HomeCsc()
+    {
+        var plan = new FlashPlan
+        {
+            InstallationMode = "clean",
+            Firmware = new FirmwarePackage
+            {
+                Images = new List<FirmwareImage>
+                {
+                    new() { SourcePackage = "AP", PreparedName = "boot.img", PreparedPath = "C:/temp/boot.img" },
+                    new() { SourcePackage = "CSC", PreparedName = "cache.img", PreparedPath = "C:/temp/cache.img" },
+                    new() { SourcePackage = "HOME_CSC", PreparedName = "cache.img", PreparedPath = "C:/temp/cache-home.img" },
+                },
+            },
+            Items = new List<FlashPlanItem>
+            {
+                new() { SourcePackage = "CSC", Image = "cache.img", Partition = "CACHE", Include = true, Status = "ready", Category = "ready" },
+                new() { SourcePackage = "HOME_CSC", Image = "cache.img", Partition = "CACHE", Include = true, Status = "ready", Category = "ready" },
+            },
+        };
+
+        FlashPlanPolicy.ApplyInstallationMode(plan);
+
+        Assert.Equal("clean", plan.InstallationMode);
+        Assert.Equal("CSC", plan.Summary.SelectedRegionalPackage);
+        Assert.True(plan.Items.First(item => item.SourcePackage == "CSC").Include);
+
+        var homeCsc = plan.Items.First(item => item.SourcePackage == "HOME_CSC");
+        Assert.False(homeCsc.Include);
+        Assert.Equal("excluded_by_user_mode", homeCsc.Status);
+        Assert.Equal("excluded_by_user_mode", homeCsc.Category);
     }
 
     [Fact]

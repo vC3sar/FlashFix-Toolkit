@@ -30,6 +30,8 @@ export const appState = {
     summary: null,
     resultPath: null,
     binary: null,
+    installationMode: "clean",
+    selectedRegionalPackage: null,
   },
   operation: {
     running: false,

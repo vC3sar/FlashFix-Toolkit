@@ -16,7 +16,8 @@ contextBridge.exposeInMainWorld("flashfix", {
   getDeviceInfo: () => ipcRenderer.invoke("core:deviceInfo"),
   readPit: () => ipcRenderer.invoke("core:readPit"),
   analyzeFirmware: (firmwarePath) => ipcRenderer.invoke("core:analyzeFirmware", firmwarePath),
-  buildPlan: (firmwarePath, pitJsonPath) => ipcRenderer.invoke("core:buildPlan", firmwarePath, pitJsonPath),
+  buildPlan: (firmwarePath, pitJsonPath, installationMode = "clean") =>
+    ipcRenderer.invoke("core:buildPlan", firmwarePath, pitJsonPath, installationMode),
   flashPlan: (planJsonPath) => ipcRenderer.invoke("core:flashPlan", planJsonPath),
   cleanTemp: () => ipcRenderer.invoke("core:cleanTemp"),
   onOperationStart: (callback) => subscribe("core:operation-start", callback),

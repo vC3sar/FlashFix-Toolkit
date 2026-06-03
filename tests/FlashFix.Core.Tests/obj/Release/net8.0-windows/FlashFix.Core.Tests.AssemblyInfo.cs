@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("FlashFix.Core.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+41d87bb5d0b1c2b32e2d439fb3093c66787bb688")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b982d7b35dc9abc33f14b965d21b7970e1c6bfbc")]
 [assembly: System.Reflection.AssemblyProductAttribute("FlashFix.Core.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("FlashFix.Core.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

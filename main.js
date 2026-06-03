@@ -397,8 +397,8 @@ ipcMain.handle("core:readPit", async () => runCoreCommand("read-pit"));
 ipcMain.handle("core:analyzeFirmware", async (_event, firmwarePath) => {
   return runCoreCommand("analyze-firmware", [firmwarePath]);
 });
-ipcMain.handle("core:buildPlan", async (_event, firmwarePath, pitJsonPath) => {
-  return runCoreCommand("build-plan", [firmwarePath, pitJsonPath]);
+ipcMain.handle("core:buildPlan", async (_event, firmwarePath, pitJsonPath, installationMode) => {
+  return runCoreCommand("build-plan", [firmwarePath, pitJsonPath, installationMode || "clean"]);
 });
 ipcMain.handle("core:flashPlan", async (_event, planJsonPath) => {
   return runCoreCommand("flash-plan", [planJsonPath]);

@@ -42,6 +42,24 @@ internal sealed class Lz4Service
         return (inputPath, warnings);
     }
 
+    public async Task<string> PrepareForFlashAsync(
+        string inputPath,
+        string outputDirectory,
+        CancellationToken cancellationToken = default)
+    {
+        var fileName = Path.GetFileName(inputPath);
+        if (!IsLz4(fileName))
+        {
+            return inputPath;
+        }
+
+        var outputName = StripLz4Suffix(fileName);
+        var outputPath = Path.Combine(outputDirectory, outputName);
+
+        var success = await TryDecompressAsync(inputPath, outputPath, cancellationToken);
+        return success ? outputPath : inputPath;
+    }
+
     private static async Task<bool> TryDecompressAsync(
         string inputPath,
         string outputPath,

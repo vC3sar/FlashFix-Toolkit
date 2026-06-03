@@ -48,35 +48,6 @@ internal sealed class FirmwareExtractor
 
             var safeName = SanitizeFileName(originalName);
 
-            if (safeName.Equals("super.img.lz4", StringComparison.OrdinalIgnoreCase))
-            {
-                compressedContainerCount++;
-                var skipped = $"Skipped oversized tar entry during analysis: {packageType}:{safeName}";
-                logger.WriteLine(skipped);
-                ConsoleProtocol.Log("info", skipped, false, new
-                {
-                    packageType,
-                    originalName = safeName,
-                    entrySizeBytes = entry.Filesize,
-                });
-
-                package.Images.Add(new FirmwareImage
-                {
-                    SourcePackage = packageType,
-                    OriginalName = safeName,
-                    PreparedName = safeName,
-                    PreparedPath = string.Empty,
-                    SizeBytes = entry.Filesize,
-                    SuggestedPartition = string.Empty,
-                    Confidence = "low",
-                    Status = "skipped",
-                    IsLz4 = true,
-                    Warnings = new List<string> { "Oversized container skipped during analysis" },
-                });
-                index++;
-                continue;
-            }
-
             byte[] extracted;
             try
             {

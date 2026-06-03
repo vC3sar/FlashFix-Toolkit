@@ -20,7 +20,7 @@ internal sealed class FlashPlanService
         _pitService = new PitService(logger);
     }
 
-    public async Task<FlashPlan> BuildPlanAsync(string firmwareFolder, string pitJsonPath, OperationLogger logger, CancellationToken cancellationToken = default)
+    public async Task<FlashPlan> BuildPlanAsync(string firmwareFolder, string pitJsonPath, string installationMode, OperationLogger logger, CancellationToken cancellationToken = default)
     {
         if (!File.Exists(pitJsonPath))
         {
@@ -41,6 +41,7 @@ internal sealed class FlashPlanService
             Firmware = analysis,
             Binary = analysis.Binary,
             PitPartitions = pitPartitions,
+            InstallationMode = FlashPlanPolicy.NormalizeInstallationMode(installationMode),
         };
 
         foreach (var image in analysis.Images)
@@ -49,22 +50,21 @@ internal sealed class FlashPlanService
             plan.Items.Add(item);
         }
 
+        FlashPlanPolicy.ApplyInstallationMode(plan);
+        FlashPlanPolicy.ResolveDuplicateVbmeta(plan);
+        FlashPlanPolicy.BuildPreflightSummary(plan);
+
         plan.Summary.TotalImages = plan.Items.Count;
         plan.Summary.Included = plan.Items.Count(x => x.Include);
         plan.Summary.Excluded = plan.Items.Count - plan.Summary.Included;
         plan.Summary.Warnings = plan.Items.Sum(x => x.Warnings.Count);
-        plan.Summary.CriticalWarnings = plan.Items.Count(x => x.Include && x.Warnings.Count > 0);
+        plan.Summary.CriticalWarnings = plan.Summary.BlockingReasons.Count > 0
+            ? plan.Summary.BlockingReasons.Count
+            : plan.Items.Count(x => x.Include && x.Warnings.Count > 0);
         plan.Summary.PitPartitionsLoaded = pitPartitions.Count;
-        plan.Summary.ReadyCandidates = plan.Items.Count(x => string.Equals(x.Category, "ready", StringComparison.OrdinalIgnoreCase));
-        plan.Summary.MappedButNotReady = plan.Items.Count(x => string.Equals(x.Category, "mapped_but_not_ready", StringComparison.OrdinalIgnoreCase));
-        plan.Summary.HighRiskExcluded = plan.Items.Count(x => string.Equals(x.Category, "high_risk_excluded", StringComparison.OrdinalIgnoreCase));
-        plan.Summary.Unmapped = plan.Items.Count(x => string.Equals(x.Category, "unmapped", StringComparison.OrdinalIgnoreCase));
-        plan.Summary.Auxiliary = plan.Items.Count(x => string.Equals(x.Category, "auxiliary", StringComparison.OrdinalIgnoreCase));
-        plan.Summary.Metadata = plan.Items.Count(x => string.Equals(x.Category, "metadata", StringComparison.OrdinalIgnoreCase));
-        plan.Summary.PitFiles = plan.Items.Count(x => string.Equals(x.Category, "pit_file", StringComparison.OrdinalIgnoreCase));
-        plan.Summary.Unknown = plan.Items.Count(x => string.Equals(x.Category, "unknown", StringComparison.OrdinalIgnoreCase));
         plan.Warnings.AddRange(analysis.Warnings);
         plan.Warnings.AddRange(plan.Items.SelectMany(x => x.Warnings));
+        plan.Warnings.AddRange(plan.Summary.BlockingReasons);
         plan.Warnings = plan.Warnings
             .Where(warning => !string.IsNullOrWhiteSpace(warning))
             .Distinct(StringComparer.Ordinal)
@@ -79,6 +79,8 @@ internal sealed class FlashPlanService
             items = plan.Items.Count,
             included = plan.Summary.Included,
             excluded = plan.Summary.Excluded,
+            installationMode = plan.InstallationMode,
+            selectedRegionalPackage = plan.Summary.SelectedRegionalPackage,
         });
         return plan;
     }
@@ -109,16 +111,31 @@ internal sealed class FlashPlanService
             throw new InvalidOperationException($"{Warnings.PlanHasCriticalWarnings}: {string.Join("; ", blockingReasons)}");
         }
 
-        var flashFiles = plan.Items
-            .Where(item => item.Include)
-            .Select(item => new FileFlash
+        var lz4 = new Lz4Service();
+        var flashFiles = new List<FileFlash>();
+        foreach (var item in plan.Items.Where(item => item.Include))
+        {
+            var filePath = item.FilePath;
+            if (filePath.EndsWith(".lz4", StringComparison.OrdinalIgnoreCase))
+            {
+                var preparedPath = await lz4.PrepareForFlashAsync(filePath, AppPaths.TempDir, cancellationToken);
+                if (string.Equals(preparedPath, filePath, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(item.Partition, "SUPER", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException("SUPER exists in AP but could not be prepared for flashing.");
+                }
+
+                filePath = preparedPath;
+            }
+
+            flashFiles.Add(new FileFlash
             {
                 FileName = item.Image,
                 Enable = true,
-                FilePath = item.FilePath,
-                RawSize = new FileInfo(item.FilePath).Length,
-            })
-            .ToList();
+                FilePath = filePath,
+                RawSize = new FileInfo(filePath).Length,
+            });
+        }
 
         var pitEntries = plan.PitPartitions.Select(PitService.ToEntry).ToList();
         var odin = new OdinService(logger);

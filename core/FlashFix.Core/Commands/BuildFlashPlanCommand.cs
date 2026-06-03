@@ -19,11 +19,12 @@ internal sealed class BuildFlashPlanCommand
         logger.WriteLine("Command: build-plan");
         var firmwareFolder = args[0];
         var pitJsonPath = args[1];
+        var installationMode = args.Length >= 3 ? args[2] : "clean";
 
         try
         {
             var service = new FlashPlanService(logger);
-            var plan = await service.BuildPlanAsync(firmwareFolder, pitJsonPath, logger);
+            var plan = await service.BuildPlanAsync(firmwareFolder, pitJsonPath, installationMode, logger);
             ConsoleProtocol.Result(new OperationResult
             {
                 Ok = true,
@@ -36,6 +37,8 @@ internal sealed class BuildFlashPlanCommand
                     analysisPath = plan.AnalysisPath,
                     sourceFirmwarePath = plan.SourceFirmwarePath,
                     pitPath = plan.PitPath,
+                    installationMode = plan.InstallationMode,
+                    selectedRegionalPackage = plan.Summary.SelectedRegionalPackage,
                     summary = plan.Summary,
                     binary = plan.Binary,
                     warnings = plan.Warnings,

@@ -46,11 +46,32 @@ internal static class FlashPlanRules
         if (IsNonFlashable(image.ImageKind))
         {
             item.Include = false;
-            item.Status = "excluded";
-            item.Category = CategoryForImageKind(image.ImageKind, item.Status);
+            item.Status = "metadata_excluded";
+            item.Category = "metadata_excluded";
             item.Reason = image.Reason;
             item.Risk = RiskForPartition(item.Partition);
             item.Warnings.Add(BuildNonFlashableMessage(originalLabel, image.ImageKind));
+            return item;
+        }
+
+        if (string.Equals(item.Partition, "SUPER", StringComparison.OrdinalIgnoreCase))
+        {
+            item.Reason = "compressed_or_large_but_flashable_candidate";
+            item.Risk = RiskForPartition(item.Partition);
+            if (pitLoaded && pitMatch is not null)
+            {
+                item.Include = true;
+                item.Status = "vital_ready";
+                item.Category = "vital_ready";
+                item.Reason = "super_vital_ready";
+                item.Warnings.Add($"SUPER is vital for dynamic partitions; {originalLabel} is a flashable candidate.");
+                return item;
+            }
+
+            item.Include = false;
+            item.Status = "large_but_flashable";
+            item.Category = "large_but_flashable";
+            item.Warnings.Add(BuildCompressedMessage(originalLabel, item.Partition));
             return item;
         }
 
@@ -58,8 +79,8 @@ internal static class FlashPlanRules
             || !string.Equals(image.DecompressionStatus, "success", StringComparison.OrdinalIgnoreCase))
         {
             item.Include = false;
-            item.Status = "mapped_but_not_ready";
-            item.Category = "mapped_but_not_ready";
+            item.Status = "large_but_flashable";
+            item.Category = "large_but_flashable";
             item.Reason = "compressed_or_oversized";
             item.Risk = RiskForPartition(item.Partition);
             item.Warnings.Add(BuildCompressedMessage(originalLabel, item.Partition));
@@ -80,19 +101,19 @@ internal static class FlashPlanRules
         if (string.Equals(item.Partition, "USERDATA", StringComparison.OrdinalIgnoreCase))
         {
             item.Include = false;
-            item.Status = "excluded";
-            item.Category = "high_risk_excluded";
+            item.Status = "high_risk_blocked";
+            item.Category = "high_risk_blocked";
             item.Reason = "userdata_blocked";
             item.Risk = "high";
-            item.Warnings.Add($"Excluded from plan: {originalLabel} — userdata is blocked by default because it may erase user data.");
+            item.Warnings.Add($"Excluded from plan: {originalLabel} — USERDATA may erase user data.");
             return item;
         }
 
         if (highRisk)
         {
             item.Include = false;
-            item.Status = "excluded";
-            item.Category = "high_risk_excluded";
+            item.Status = "high_risk_blocked";
+            item.Category = "high_risk_blocked";
             item.Reason = "high_risk";
             item.Risk = RiskForPartition(item.Partition);
             item.Warnings.Add(BuildHighRiskMessage(originalLabel, item.Partition));
@@ -102,8 +123,8 @@ internal static class FlashPlanRules
         if (!pitLoaded)
         {
             item.Include = false;
-            item.Status = "mapped_but_not_ready";
-            item.Category = "mapped_but_not_ready";
+            item.Status = "pit_not_found";
+            item.Category = "pit_not_found";
             item.Reason = "pit_not_checked";
             item.Risk = RiskForPartition(item.Partition);
             item.Warnings.Add($"Mapped but excluded: {originalLabel} → {item.Partition} — PIT data is not loaded.");
@@ -113,8 +134,8 @@ internal static class FlashPlanRules
         if (pitMatch is null)
         {
             item.Include = false;
-            item.Status = "mapped_but_not_ready";
-            item.Category = "mapped_but_not_ready";
+            item.Status = "pit_not_found";
+            item.Category = "pit_not_found";
             item.Reason = "pit_not_found";
             item.Risk = RiskForPartition(item.Partition);
             item.Warnings.Add($"Mapped but excluded: {originalLabel} → {item.Partition} — partition not found in loaded PIT or not verified.");
@@ -142,14 +163,15 @@ internal static class FlashPlanRules
 
         return imageKind switch
         {
-            "pit_file" => "pit_file",
-            "metadata_file" => "auxiliary",
-            "archive_inside_firmware" => "auxiliary",
-            "auxiliary_file" => "auxiliary",
-            "oversized_container" => "mapped_but_not_ready",
-            _ when string.Equals(status, "mapped_but_not_ready", StringComparison.OrdinalIgnoreCase) => "mapped_but_not_ready",
-            _ when string.Equals(status, "excluded", StringComparison.OrdinalIgnoreCase) => "high_risk_excluded",
-            _ when string.Equals(status, "non_flashable", StringComparison.OrdinalIgnoreCase) => "auxiliary",
+            "pit_file" => "metadata_excluded",
+            "metadata_file" => "metadata_excluded",
+            "archive_inside_firmware" => "metadata_excluded",
+            "auxiliary_file" => "metadata_excluded",
+            "oversized_container" => "large_but_flashable",
+            _ when string.Equals(status, "pit_not_found", StringComparison.OrdinalIgnoreCase) => "pit_not_found",
+            _ when string.Equals(status, "high_risk_blocked", StringComparison.OrdinalIgnoreCase) => "high_risk_blocked",
+            _ when string.Equals(status, "duplicate_resolved", StringComparison.OrdinalIgnoreCase) => "duplicate_resolved",
+            _ when string.Equals(status, "excluded_by_user_mode", StringComparison.OrdinalIgnoreCase) => "excluded_by_user_mode",
             _ => "unknown",
         };
     }
@@ -159,6 +181,11 @@ internal static class FlashPlanRules
         if (string.IsNullOrWhiteSpace(partition))
         {
             return "low";
+        }
+
+        if (string.Equals(partition, "SUPER", StringComparison.OrdinalIgnoreCase))
+        {
+            return "high";
         }
 
         if (HighRiskPartitions.Contains(partition))
@@ -179,19 +206,7 @@ internal static class FlashPlanRules
 
     public static List<string> BuildPolicyWarnings(string partition)
     {
-        var warnings = new List<string>();
-
-        if (string.Equals(partition, "CSC", StringComparison.OrdinalIgnoreCase))
-        {
-            warnings.Add(Warnings.CscMayWipe);
-        }
-
-        if (string.Equals(partition, "HOME_CSC", StringComparison.OrdinalIgnoreCase))
-        {
-            warnings.Add(Warnings.HomeCscNotGuaranteed);
-        }
-
-        return warnings;
+        return new List<string>();
     }
 
     private static string BuildNonFlashableMessage(string originalLabel, string imageKind)
@@ -239,10 +254,7 @@ internal static class FlashPlanRules
         "VBMETA",
         "VBMETA_SYSTEM",
         "EFUSE",
-        "SUPER",
         "USERDATA",
-        "CSC",
-        "HOME_CSC",
     };
 
     private static readonly HashSet<string> MediumRiskPartitions = new(StringComparer.OrdinalIgnoreCase)

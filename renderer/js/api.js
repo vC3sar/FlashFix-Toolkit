@@ -36,8 +36,8 @@ export function analyzeFirmware(firmwarePath) {
   return api.analyzeFirmware(firmwarePath);
 }
 
-export function buildFlashPlan(firmwarePath, pitJsonPath) {
-  return api.buildPlan(firmwarePath, pitJsonPath);
+export function buildFlashPlan(firmwarePath, pitJsonPath, installationMode = "clean") {
+  return api.buildPlan(firmwarePath, pitJsonPath, installationMode);
 }
 
 export function executeFlashPlan(planJsonPath) {
