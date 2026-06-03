@@ -1,10 +1,12 @@
 /node_modules
+/.dotnet-local/
 /logs/*
 !/logs/.gitkeep
 /temp/*
 !/temp/.gitkeep
 /engines/*
 !/engines/.gitkeep
+/dotnet-install.ps1
 /core/**/bin/
 /core/**/obj/
 /core/**/.vs/
