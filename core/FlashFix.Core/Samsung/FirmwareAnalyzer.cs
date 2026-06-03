@@ -53,6 +53,10 @@ internal sealed class FirmwareAnalyzer
             analysis.Warnings.AddRange(extracted.Warnings);
         }
 
+        analysis.Warnings = analysis.Warnings
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
         var analysisPath = Path.Combine(AppPaths.LogsDir, $"firmware-analysis-{AppPaths.Timestamp()}.json");
         analysis.AnalysisPath = analysisPath;
         await File.WriteAllTextAsync(analysisPath, JsonSerializer.Serialize(analysis, ConsoleProtocol.Options), cancellationToken);

@@ -1,390 +1,773 @@
-const state = {
-  backendFound: false,
-  backendPath: "",
-  logsDir: "",
-  tempDir: "",
-  deviceState: "unknown",
-  deviceMessage: "Sin validar",
-  deviceInfo: null,
-  pitData: null,
-  firmwarePath: "",
-  pitPath: "",
-  analysisPath: "",
-  planPath: "",
-  busy: false,
-  lastOperation: null,
-};
+import { analyzeFirmware, buildFlashPlan, cleanTemp, detectDevice, executeFlashPlan, getDeviceInfo, getStatus, openLicensesFolder, openLogsFolder, onCoreEvent, readPit, selectFirmwareFolder, selectJsonFile } from "./js/api.js";
+import { basename, byId, ellipsizePath, formatDateTime, normalizeLevel } from "./js/components.js";
+import { renderDeviceDashboard, renderDevicePanel } from "./js/device-ui.js";
+import { renderFirmwarePanel } from "./js/firmware-ui.js";
+import { LoggerUI } from "./js/logger-ui.js";
+import { initNavigation } from "./js/navigation.js";
+import { renderFlashPlanPanel } from "./js/flash-plan-ui.js";
+import { renderPitPanel, renderPitRaw } from "./js/pit-ui.js";
+import { appState } from "./js/state.js";
+
+const state = appState;
 
 const els = {
-  backendBadge: document.getElementById("backendBadge"),
-  deviceBadge: document.getElementById("deviceBadge"),
-  backendStatusText: document.getElementById("backendStatusText"),
-  backendPathText: document.getElementById("backendPathText"),
-  logsStatusText: document.getElementById("logsStatusText"),
-  logsPathText: document.getElementById("logsPathText"),
-  tempStatusText: document.getElementById("tempStatusText"),
-  tempPathText: document.getElementById("tempPathText"),
-  deviceStatusText: document.getElementById("deviceStatusText"),
-  deviceDetailText: document.getElementById("deviceDetailText"),
-  deviceInfoBox: document.getElementById("deviceInfoBox"),
-  pitBox: document.getElementById("pitBox"),
-  firmwarePathText: document.getElementById("firmwarePathText"),
-  firmwareHintText: document.getElementById("firmwareHintText"),
-  pitPathText: document.getElementById("pitPathText"),
-  pitHintText: document.getElementById("pitHintText"),
-  analysisBox: document.getElementById("analysisBox"),
-  planPathText: document.getElementById("planPathText"),
-  planHintText: document.getElementById("planHintText"),
-  planBox: document.getElementById("planBox"),
-  logStream: document.getElementById("logStream"),
-  openLogsBtn: document.getElementById("openLogsBtn"),
-  detectBtn: document.getElementById("detectBtn"),
-  deviceInfoBtn: document.getElementById("deviceInfoBtn"),
-  readPitBtn: document.getElementById("readPitBtn"),
-  selectFirmwareBtn: document.getElementById("selectFirmwareBtn"),
-  analyzeBtn: document.getElementById("analyzeBtn"),
-  selectPitBtn: document.getElementById("selectPitBtn"),
-  buildPlanBtn: document.getElementById("buildPlanBtn"),
-  selectPlanBtn: document.getElementById("selectPlanBtn"),
-  flashPlanBtn: document.getElementById("flashPlanBtn"),
-  cleanTempBtn: document.getElementById("cleanTempBtn"),
-  clearLogsBtn: document.getElementById("clearLogsBtn"),
+  backendBadge: byId("backendBadge"),
+  deviceBadge: byId("deviceBadge"),
+  operationBadge: byId("operationBadge"),
+  dashboardCards: byId("dashboardCards"),
+  openLogsQuickBtn: byId("openLogsQuickBtn"),
+  cleanTempBtn: byId("cleanTempBtn"),
+  detectBtn: byId("detectBtn"),
+  deviceInfoBtn: byId("deviceInfoBtn"),
+  readPitBtnDevice: byId("readPitBtnDevice"),
+  readPitBtnSection: byId("readPitBtnSection"),
+  selectFirmwareBtn: byId("selectFirmwareBtn"),
+  analyzeBtn: byId("analyzeBtn"),
+  selectPitBtn: byId("selectPitBtn"),
+  buildPlanBtn: byId("buildPlanBtn"),
+  selectPlanBtn: byId("selectPlanBtn"),
+  flashPlanBtn: byId("flashPlanBtn"),
+  cleanTempSecondaryBtn: byId("cleanTempSecondaryBtn"),
+  openLicensesBtn: byId("openLicensesBtn"),
+  backendPathText: byId("backendPathText"),
+  backendPathFullBox: byId("backendPathFullBox"),
+  logsPathText: byId("logsPathText"),
+  logsPathFullBox: byId("logsPathFullBox"),
+  tempPathText: byId("tempPathText"),
+  tempPathFullBox: byId("tempPathFullBox"),
+  licensesPathText: byId("licensesPathText"),
+  licensesPathFullBox: byId("licensesPathFullBox"),
+  disclaimerText: byId("disclaimerText"),
+  deviceStatusText: byId("deviceStatusText"),
+  deviceDetailText: byId("deviceDetailText"),
+  deviceModelText: byId("deviceModelText"),
+  deviceModelMetaText: byId("deviceModelMetaText"),
+  deviceBadgeInline: byId("deviceBadgeInline"),
+  deviceInfoBox: byId("deviceInfoBox"),
+  pitBox: byId("pitBox"),
+  firmwarePathText: byId("firmwarePathText"),
+  firmwareHintText: byId("firmwareHintText"),
+  firmwarePackageGrid: byId("firmwarePackageGrid"),
+  analysisSummaryBox: byId("analysisSummaryBox"),
+  pitPathText: byId("pitPathText"),
+  pitHintText: byId("pitHintText"),
+  pitSummaryBox: byId("pitSummaryBox"),
+  pitTableBody: byId("pitTableBody"),
+  planPathText: byId("planPathText"),
+  planHintText: byId("planHintText"),
+  planSummaryBox: byId("planSummaryBox"),
+  planTableBody: byId("planTableBody"),
+  planWarningsBox: byId("planWarningsBox"),
+  currentOperationTitle: byId("currentOperationTitle"),
+  currentOperationMessage: byId("currentOperationMessage"),
+  currentOperationMeta: byId("currentOperationMeta"),
+  currentOperationProgress: byId("currentOperationProgress"),
+  currentOperationProgressText: byId("currentOperationProgressText"),
+  logStream: byId("logStream"),
+  logCountText: byId("logCountText"),
+  logSearchInput: byId("logSearchInput"),
+  copyVisibleLogsBtn: byId("copyVisibleLogsBtn"),
+  copyAllLogsBtn: byId("copyAllLogsBtn"),
+  exportLogsBtn: byId("exportLogsBtn"),
+  clearLogsBtn: byId("clearLogsBtn"),
+  openLogsBtn: byId("openLogsBtn"),
+  filterButtons: document.querySelectorAll("[data-log-filter]"),
+  navButtons: document.querySelectorAll("[data-section]"),
+  sections: document.querySelectorAll("[data-section-panel]"),
 };
 
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
+initNavigation({
+  buttons: els.navButtons,
+  sections: els.sections,
+  defaultSection: state.ui.activeSection,
+});
 
-function pretty(value) {
-  return JSON.stringify(value, null, 2);
-}
+const logger = new LoggerUI({
+  streamEl: els.logStream,
+  countEl: els.logCountText,
+  filterButtons: els.filterButtons,
+  searchInput: els.logSearchInput,
+  clearBtn: els.clearLogsBtn,
+  copyVisibleBtn: els.copyVisibleLogsBtn,
+  copyAllBtn: els.copyAllLogsBtn,
+  exportBtn: els.exportLogsBtn,
+});
 
-function deviceLabel(deviceState) {
-  switch (deviceState) {
-    case "detected":
-      return "Detectado";
-    case "not_detected":
-      return "No detectado";
-    case "driver_issue":
-      return "Driver o permisos";
-    case "error":
-      return "Error";
-    default:
-      return "Desconocido";
-  }
+state.logs.entries = logger.entries;
+
+function setBadge(el, text, variant) {
+  el.className = `ff-badge ${variant ? `ff-badge--${variant}` : "ff-badge--muted"}`;
+  el.textContent = text;
 }
 
 function setBusy(value) {
-  state.busy = value;
+  state.operation.running = value;
   updateButtons();
+  renderOperationPanel();
 }
 
 function updateButtons() {
-  const backendReady = state.backendFound;
-  els.detectBtn.disabled = state.busy || !backendReady;
-  els.deviceInfoBtn.disabled = state.busy || !backendReady;
-  els.readPitBtn.disabled = state.busy || !backendReady;
-  els.selectFirmwareBtn.disabled = state.busy;
-  els.analyzeBtn.disabled = state.busy || !backendReady || !state.firmwarePath;
-  els.selectPitBtn.disabled = state.busy;
-  els.buildPlanBtn.disabled = state.busy || !backendReady || !state.firmwarePath || !state.pitPath;
-  els.selectPlanBtn.disabled = state.busy;
-  els.flashPlanBtn.disabled = state.busy || !backendReady || !state.planPath;
-  els.cleanTempBtn.disabled = state.busy || !backendReady;
+  const backendReady = state.core.available;
+  const disabled = Boolean(state.operation.running);
+
+  [
+    els.detectBtn,
+    els.deviceInfoBtn,
+    els.readPitBtnDevice,
+    els.readPitBtnSection,
+    els.selectFirmwareBtn,
+    els.analyzeBtn,
+    els.selectPitBtn,
+    els.buildPlanBtn,
+    els.selectPlanBtn,
+    els.flashPlanBtn,
+    els.cleanTempBtn,
+    els.cleanTempSecondaryBtn,
+  ].forEach((button) => {
+    if (!button) {
+      return;
+    }
+
+    const coreAction = [
+      els.detectBtn,
+      els.deviceInfoBtn,
+      els.readPitBtnDevice,
+      els.readPitBtnSection,
+      els.analyzeBtn,
+      els.buildPlanBtn,
+      els.flashPlanBtn,
+      els.cleanTempBtn,
+      els.cleanTempSecondaryBtn,
+    ].includes(button);
+
+    const selectionAction = [els.selectFirmwareBtn, els.selectPitBtn, els.selectPlanBtn].includes(button);
+
+    button.disabled = (coreAction && (disabled || !backendReady))
+      || (selectionAction && disabled);
+  });
+
+  els.openLogsQuickBtn.disabled = false;
+  els.openLogsBtn.disabled = false;
+  els.openLicensesBtn.disabled = false;
 }
 
-function renderStatus() {
-  els.backendBadge.textContent = state.backendFound ? "Backend: listo" : "Backend: faltante";
-  els.deviceBadge.textContent = `Dispositivo: ${deviceLabel(state.deviceState)}`;
-  els.backendStatusText.textContent = state.backendFound ? "FlashFix.Core encontrado" : "FlashFix.Core no encontrado";
-  els.backendPathText.textContent = state.backendPath || "engines/FlashFix.Core.exe";
-  els.logsStatusText.textContent = state.logsDir ? "Disponible" : "Pendiente";
-  els.logsPathText.textContent = state.logsDir || "logs/";
-  els.tempStatusText.textContent = state.tempDir ? "Disponible" : "Pendiente";
-  els.tempPathText.textContent = state.tempDir || "temp/";
-  els.deviceStatusText.textContent = deviceLabel(state.deviceState);
-  els.deviceDetailText.textContent = state.deviceMessage;
-  els.firmwarePathText.textContent = state.firmwarePath || "No seleccionada";
-  els.firmwareHintText.textContent = state.firmwarePath
-    ? "Lista para analizar."
-    : "Carpeta con BL/AP/CP/CSC/HOME_CSC.";
-  els.pitPathText.textContent = state.pitPath || "No seleccionado";
-  els.pitHintText.textContent = state.pitPath
-    ? "PIT listo para construir el plan."
-    : "Se puede usar el PIT generado por el backend.";
-  els.planPathText.textContent = state.planPath || "No generado";
-  els.planHintText.textContent = state.planPath
-    ? "Plan listo para revisión y flasheo."
-    : "Solo se incluyen particiones permitidas y mapeadas.";
-  els.deviceInfoBox.textContent = state.deviceInfo ? pretty(state.deviceInfo) : "Sin información del dispositivo.";
-  els.pitBox.textContent = state.pitData ? pretty(state.pitData) : "Sin PIT todavía.";
+function renderDashboard() {
+  renderDeviceDashboard(els.dashboardCards, state);
+}
+
+function renderTopBadges() {
+  setBadge(
+    els.backendBadge,
+    state.core.available ? "Backend: listo" : "Backend: faltante",
+    state.core.available ? "success" : "muted",
+  );
+
+  const deviceVariant = state.device.connected
+    ? "success"
+    : state.device.info?.status === "error"
+      ? "danger"
+      : "warning";
+  setBadge(
+    els.deviceBadge,
+    state.device.connected ? "Dispositivo: conectado" : "Dispositivo: no detectado",
+    deviceVariant,
+  );
+
+  const opVariant = state.operation.current
+    ? (state.operation.current.status === "error"
+      ? "danger"
+      : state.operation.current.status === "success"
+        ? "success"
+        : "running")
+    : "muted";
+
+  const opText = state.operation.current
+    ? (state.operation.current.status === "error"
+      ? "Operación: error"
+      : state.operation.current.status === "success"
+        ? "Operación: completada"
+        : "Operación: en curso")
+    : "Operación: inactiva";
+
+  setBadge(els.operationBadge, opText, opVariant);
+}
+
+function renderSettings() {
+  const corePath = state.core.path || "engines/FlashFix.Core.exe";
+  const logsPath = state.core.logsDir || "logs/";
+  const tempPath = state.core.tempDir || "temp/";
+  const licensesPath = state.core.licensesDir || "licenses/";
+
+  els.backendPathText.textContent = ellipsizePath(corePath, 56);
+  els.backendPathFullBox.textContent = corePath;
+  els.logsPathText.textContent = ellipsizePath(logsPath, 56);
+  els.logsPathFullBox.textContent = logsPath;
+  els.tempPathText.textContent = ellipsizePath(tempPath, 56);
+  els.tempPathFullBox.textContent = tempPath;
+  els.licensesPathText.textContent = ellipsizePath(licensesPath, 56);
+  els.licensesPathFullBox.textContent = licensesPath;
+  els.disclaimerText.textContent = "FlashFix Toolkit is an independent firmware utility. It is not affiliated with or endorsed by Samsung.";
+}
+
+function renderDeviceSection() {
+  renderDevicePanel({
+    statusText: els.deviceStatusText,
+    detailText: els.deviceDetailText,
+    modelText: els.deviceModelText,
+    modelMetaText: els.deviceModelMetaText,
+    badgeTarget: els.deviceBadgeInline,
+    infoTarget: els.deviceInfoBox,
+    device: state.device,
+  });
+  renderPitRaw(els.pitBox, state.pit.loaded ? {
+    partitions: state.pit.partitions,
+    txtPath: state.pit.txtPath,
+    jsonPath: state.pit.path,
+  } : null);
+}
+
+function renderFirmwareSection() {
+  renderFirmwarePanel({
+    pathText: els.firmwarePathText,
+    hintText: els.firmwareHintText,
+    packageGrid: els.firmwarePackageGrid,
+    summaryBox: els.analysisSummaryBox,
+  }, state);
+}
+
+function renderPitSection() {
+  renderPitPanel({
+    pathText: els.pitPathText,
+    hintText: els.pitHintText,
+    summaryBox: els.pitSummaryBox,
+    tableBody: els.pitTableBody,
+  }, state);
+}
+
+function renderPlanSection() {
+  renderFlashPlanPanel({
+    pathText: els.planPathText,
+    hintText: els.planHintText,
+    summaryBox: els.planSummaryBox,
+    tableBody: els.planTableBody,
+    warningsBox: els.planWarningsBox,
+  }, state);
+}
+
+function renderOperationPanel() {
+  const current = state.operation.current;
+  if (!current) {
+    els.currentOperationTitle.textContent = "Sin operación";
+    els.currentOperationMessage.textContent = "No hay tareas en curso.";
+    els.currentOperationMeta.textContent = "";
+    els.currentOperationProgress.style.width = "0%";
+    els.currentOperationProgressText.textContent = "0%";
+    renderTopBadges();
+    return;
+  }
+
+  const statusText = current.status === "error"
+    ? "Fallo"
+    : current.status === "success"
+      ? "Completado"
+      : state.operation.running
+        ? "En curso"
+        : "Finalizado";
+
+  els.currentOperationTitle.textContent = `${current.command || "operation"} · ${statusText}`;
+  els.currentOperationMessage.textContent = current.message || "Procesando...";
+
+  const metaParts = [
+    current.command ? `Proceso: ${current.command}` : null,
+    current.logPath ? `Log: ${ellipsizePath(current.logPath, 64)}` : null,
+    current.startedAt ? `Inicio: ${formatDateTime(current.startedAt)}` : null,
+    current.completedAt ? `Fin: ${formatDateTime(current.completedAt)}` : null,
+    Number.isFinite(current.durationMs) ? `Duración: ${(current.durationMs / 1000).toFixed(1)} s` : null,
+    Number.isFinite(current.exitCode) ? `Exit: ${current.exitCode}` : null,
+  ].filter(Boolean);
+  els.currentOperationMeta.textContent = metaParts.join(" · ");
+
+  const progress = Number.isFinite(state.operation.progress) ? state.operation.progress : 0;
+  els.currentOperationProgress.style.width = `${Math.max(0, Math.min(100, progress))}%`;
+  els.currentOperationProgressText.textContent = `${Math.round(progress)}%`;
+  renderTopBadges();
+}
+
+function renderAll() {
+  renderTopBadges();
+  renderDashboard();
+  renderDeviceSection();
+  renderFirmwareSection();
+  renderPitSection();
+  renderPlanSection();
+  renderSettings();
+  renderOperationPanel();
   updateButtons();
 }
 
-function appendLog(level, message, payload = null) {
-  const line = document.createElement("div");
-  line.className = `log-line log-${level}`;
-  const suffix = payload ? `\n${pretty(payload)}` : "";
-  line.innerHTML = `
-    <span class="log-time">${escapeHtml(new Date().toISOString())}</span>
-    <span class="log-level">${escapeHtml(level)}</span>
-    <span class="log-message">${escapeHtml(message + suffix)}</span>
-  `;
-  els.logStream.appendChild(line);
-  els.logStream.scrollTop = els.logStream.scrollHeight;
+function applyCommandData(command, data) {
+  if (!data) {
+    return;
+  }
+
+  if (command === "detect" || command === "device-info") {
+    state.device.info = data;
+    state.device.connected = Boolean(data.connected);
+  }
+
+  if (command === "detect") {
+    state.device.connected = Boolean(data.connected);
+  }
+
+  if (command === "read-pit") {
+    state.pit.loaded = Boolean(data.partitions?.length);
+    state.pit.partitions = Array.isArray(data.partitions) ? data.partitions : [];
+    state.pit.path = data.pitJsonPath || state.pit.path;
+    state.pit.txtPath = data.pitTxtPath || state.pit.txtPath;
+  }
+
+  if (command === "analyze-firmware") {
+    state.firmware.analysis = data;
+    state.firmware.path = data.sourcePath || state.firmware.path;
+    state.firmware.packages = Array.isArray(data.images) ? data.images : [];
+  }
+
+  if (command === "build-plan") {
+    state.flashPlan.path = data.planPath || state.flashPlan.path;
+    state.flashPlan.items = Array.isArray(data.items) ? data.items : [];
+    state.flashPlan.summary = data.summary || state.flashPlan.summary;
+    state.flashPlan.warnings = Array.isArray(data.warnings) ? data.warnings : [];
+  }
+
+  if (command === "flash-plan") {
+    state.flashPlan.path = data.planPath || state.flashPlan.path;
+    state.flashPlan.summary = data.summary || state.flashPlan.summary;
+    state.flashPlan.warnings = Array.isArray(data.warnings) ? data.warnings : [];
+    state.flashPlan.resultPath = data.resultPath || state.flashPlan.resultPath;
+  }
 }
 
-function clearLogView() {
-  els.logStream.innerHTML = "";
+function buildLogEntry(eventType, payload) {
+  const timestamp = Date.now();
+  switch (eventType) {
+    case "operation-start":
+      return {
+        timestamp,
+        level: "running",
+        command: "system",
+        message: `Inicio: ${payload.commandLine || payload.command || "operación"}`,
+        details: payload,
+        expandable: true,
+      };
+    case "progress":
+      return {
+        timestamp,
+        level: "running",
+        command: payload.step || "progress",
+        message: payload.message || "En progreso",
+        details: payload,
+        expandable: true,
+      };
+    case "log":
+      return {
+        timestamp,
+        level: normalizeLevel(payload.level, "info"),
+        command: payload.command || state.operation.current?.command || "log",
+        message: payload.message || "Log",
+        details: payload.data ?? payload,
+        expandable: Boolean(payload.data ?? payload),
+      };
+    case "result":
+      return {
+        timestamp,
+        level: payload.ok === false ? "error" : "success",
+        command: payload.command || state.operation.current?.command || "result",
+        message: payload.message || "Resultado",
+        details: payload.data ?? payload,
+        expandable: Boolean(payload.data ?? payload.warnings?.length),
+      };
+    case "error":
+      return {
+        timestamp,
+        level: "error",
+        command: payload.command || state.operation.current?.command || "error",
+        message: payload.message || "Error",
+        details: payload.data ?? payload,
+        expandable: true,
+      };
+    case "stderr":
+      return {
+        timestamp,
+        level: "warning",
+        command: state.operation.current?.command || "stderr",
+        message: payload.line || "stderr",
+        details: payload,
+        expandable: true,
+      };
+    case "raw":
+      return {
+        timestamp,
+        level: "debug",
+        command: state.operation.current?.command || "raw",
+        message: payload.line || "Salida raw",
+        details: payload.parsed ?? payload,
+        expandable: Boolean(payload.parsed),
+      };
+    case "operation-end":
+      return {
+        timestamp,
+        level: payload.exitCode === 0 ? "success" : "error",
+        command: state.operation.current?.command || "operation",
+        message: payload.exitCode === 0 ? "Operación finalizada" : "Operación fallida",
+        details: payload,
+        expandable: true,
+      };
+    default:
+      return null;
+  }
 }
 
-function updateResultBox(box, data) {
-  box.textContent = data ? pretty(data) : "Sin datos.";
+function handleCoreEvent(event) {
+  const { type, payload } = event;
+
+  if (type === "operation-start") {
+    state.operation.current = {
+      ...payload,
+      startedAt: Date.now(),
+      status: "running",
+    };
+    state.operation.progress = 0;
+    state.operation.message = "Iniciando...";
+    state.operation.step = "starting";
+    logger.setCurrentFileName(payload.logPath ? basename(payload.logPath) : "flashfix-log.txt");
+  }
+
+  if (type === "progress") {
+    state.operation.progress = Number.isFinite(payload.percent) ? payload.percent : state.operation.progress;
+    state.operation.message = payload.message || state.operation.message;
+    state.operation.step = payload.step || state.operation.step;
+    if (state.operation.current) {
+      state.operation.current.message = payload.message || state.operation.current.message;
+      state.operation.current.step = payload.step || state.operation.current.step;
+      state.operation.current.progress = state.operation.progress;
+    }
+    renderOperationPanel();
+  }
+
+  if (type === "log" && payload.level === "warning") {
+    state.operation.message = payload.message || state.operation.message;
+  }
+
+  if (type === "result") {
+    applyCommandData(payload.command, payload.data);
+    if (state.operation.current) {
+      state.operation.current.message = payload.message || state.operation.current.message;
+      state.operation.current.lastResult = payload;
+      state.operation.current.status = payload.ok === false ? "error" : state.operation.current.status;
+    }
+  }
+
+  if (type === "error") {
+    if (state.operation.current) {
+      state.operation.current.message = payload.message || state.operation.current.message;
+      state.operation.current.lastError = payload;
+      state.operation.current.status = "error";
+    }
+  }
+
+  if (type === "operation-end") {
+    state.operation.running = false;
+    if (state.operation.current) {
+      state.operation.current.exitCode = payload.exitCode;
+      state.operation.current.completedAt = Date.now();
+      state.operation.current.durationMs = state.operation.current.completedAt - state.operation.current.startedAt;
+      state.operation.current.status = payload.exitCode === 0
+        ? (state.operation.current.status === "error" ? "error" : "success")
+        : "error";
+      state.operation.progress = payload.exitCode === 0 ? 100 : state.operation.progress;
+    }
+  }
+
+  const entry = buildLogEntry(type, payload);
+  if (entry) {
+    logger.add(entry);
+  }
+
+  if (["operation-start", "result", "error", "operation-end", "progress"].includes(type)) {
+    renderAll();
+  } else {
+    renderTopBadges();
+    renderOperationPanel();
+  }
+}
+
+function wireActions() {
+  els.openLogsQuickBtn.addEventListener("click", () => openLogsFolder().catch((error) => logger.add({
+    level: "error",
+    command: "open-logs",
+    message: error.message || String(error),
+    details: { error: error.message || String(error) },
+    expandable: true,
+  })));
+
+  els.openLogsBtn.addEventListener("click", () => openLogsFolder().catch((error) => logger.add({
+    level: "error",
+    command: "open-logs",
+    message: error.message || String(error),
+    details: { error: error.message || String(error) },
+    expandable: true,
+  })));
+
+  els.openLicensesBtn.addEventListener("click", () => openLicensesFolder().catch((error) => logger.add({
+    level: "error",
+    command: "open-licenses",
+    message: error.message || String(error),
+    details: { error: error.message || String(error) },
+    expandable: true,
+  })));
+
+  const runCleanTemp = async () => {
+    setBusy(true);
+    try {
+      await cleanTemp();
+    } catch (error) {
+      logger.add({
+        level: "error",
+        command: "clean-temp",
+        message: error.message || String(error),
+        details: { error: error.message || String(error) },
+        expandable: true,
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  els.cleanTempBtn.addEventListener("click", runCleanTemp);
+  els.cleanTempSecondaryBtn.addEventListener("click", runCleanTemp);
+
+  els.detectBtn.addEventListener("click", async () => {
+    setBusy(true);
+    try {
+      await detectDevice();
+    } catch (error) {
+      logger.add({
+        level: "error",
+        command: "detect",
+        message: error.message || String(error),
+        details: { error: error.message || String(error) },
+        expandable: true,
+      });
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  els.deviceInfoBtn.addEventListener("click", async () => {
+    setBusy(true);
+    try {
+      await getDeviceInfo();
+    } catch (error) {
+      logger.add({
+        level: "error",
+        command: "device-info",
+        message: error.message || String(error),
+        details: { error: error.message || String(error) },
+        expandable: true,
+      });
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  [els.readPitBtnDevice, els.readPitBtnSection].forEach((button) => {
+    button.addEventListener("click", async () => {
+      setBusy(true);
+      try {
+        await readPit();
+      } catch (error) {
+        logger.add({
+          level: "error",
+          command: "read-pit",
+          message: error.message || String(error),
+          details: { error: error.message || String(error) },
+          expandable: true,
+        });
+      } finally {
+        setBusy(false);
+      }
+    });
+  });
+
+  els.selectFirmwareBtn.addEventListener("click", async () => {
+    const folder = await selectFirmwareFolder();
+    if (!folder) {
+      return;
+    }
+
+    state.firmware.path = folder;
+    state.firmware.analysis = null;
+    state.firmware.packages = [];
+    state.flashPlan.path = null;
+    state.flashPlan.items = [];
+    state.flashPlan.summary = null;
+    state.flashPlan.warnings = [];
+    renderAll();
+    logger.add({
+      level: "info",
+      command: "select-firmware",
+      message: `Firmware seleccionado: ${basename(folder)}`,
+      details: { folder },
+      expandable: true,
+    });
+  });
+
+  els.analyzeBtn.addEventListener("click", async () => {
+    if (!state.firmware.path) {
+      logger.add({
+        level: "warning",
+        command: "analyze-firmware",
+        message: "Selecciona primero una carpeta de firmware.",
+        details: {},
+      });
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await analyzeFirmware(state.firmware.path);
+    } catch (error) {
+      logger.add({
+        level: "error",
+        command: "analyze-firmware",
+        message: error.message || String(error),
+        details: { error: error.message || String(error) },
+        expandable: true,
+      });
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  els.selectPitBtn.addEventListener("click", async () => {
+    const file = await selectJsonFile("Seleccionar PIT JSON");
+    if (!file) {
+      return;
+    }
+
+    state.pit.path = file;
+    state.flashPlan.path = null;
+    state.flashPlan.items = [];
+    state.flashPlan.summary = null;
+    state.flashPlan.warnings = [];
+    renderAll();
+    logger.add({
+      level: "info",
+      command: "select-pit",
+      message: `PIT JSON seleccionado: ${basename(file)}`,
+      details: { file },
+      expandable: true,
+    });
+  });
+
+  els.buildPlanBtn.addEventListener("click", async () => {
+    if (!state.firmware.path || !state.pit.path) {
+      logger.add({
+        level: "warning",
+        command: "build-plan",
+        message: "Selecciona firmware y PIT JSON antes de construir el plan.",
+        details: {},
+      });
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await buildFlashPlan(state.firmware.path, state.pit.path);
+    } catch (error) {
+      logger.add({
+        level: "error",
+        command: "build-plan",
+        message: error.message || String(error),
+        details: { error: error.message || String(error) },
+        expandable: true,
+      });
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  els.selectPlanBtn.addEventListener("click", async () => {
+    const file = await selectJsonFile("Seleccionar plan JSON");
+    if (!file) {
+      return;
+    }
+
+    state.flashPlan.path = file;
+    renderAll();
+    logger.add({
+      level: "info",
+      command: "select-plan",
+      message: `Plan seleccionado: ${basename(file)}`,
+      details: { file },
+      expandable: true,
+    });
+  });
+
+  els.flashPlanBtn.addEventListener("click", async () => {
+    if (!state.flashPlan.path) {
+      logger.add({
+        level: "warning",
+        command: "flash-plan",
+        message: "Selecciona un plan JSON antes de ejecutar.",
+        details: {},
+      });
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Vas a ejecutar el plan de flasheo revisado.\n\n" +
+        "Confirma que el dispositivo correcto está conectado y que entiendes el riesgo de pérdida de datos.",
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await executeFlashPlan(state.flashPlan.path);
+    } catch (error) {
+      logger.add({
+        level: "error",
+        command: "flash-plan",
+        message: error.message || String(error),
+        details: { error: error.message || String(error) },
+        expandable: true,
+      });
+    } finally {
+      setBusy(false);
+    }
+  });
 }
 
 async function refreshStatus() {
-  const status = await window.flashfix.getStatus();
-  state.backendFound = Boolean(status.coreFound);
-  state.backendPath = status.corePath || "";
-  state.logsDir = status.logsDir || "";
-  state.tempDir = status.tempDir || "";
-  renderStatus();
+  const status = await getStatus();
+  state.core.available = Boolean(status.coreFound);
+  state.core.path = status.corePath || null;
+  state.core.logsDir = status.logsDir || null;
+  state.core.tempDir = status.tempDir || null;
+  state.core.licensesDir = status.licensesDir || null;
+  renderAll();
 }
 
-async function handleDetect() {
-  setBusy(true);
-  try {
-    const result = await window.flashfix.detectDevice();
-    appendLog(result.ok ? "stdout" : "stderr", result.message || "Detect terminado.", result);
-    state.deviceState = result.ok ? "detected" : (result.code === "NO_DEVICE" ? "not_detected" : "error");
-    state.deviceMessage = result.message || "Sin mensaje.";
-    renderStatus();
-  } catch (error) {
-    appendLog("stderr", error.message || String(error));
-    state.deviceState = "error";
-    state.deviceMessage = error.message || "Error desconocido.";
-    renderStatus();
-  } finally {
-    setBusy(false);
-  }
-}
-
-async function handleDeviceInfo() {
-  setBusy(true);
-  try {
-    const result = await window.flashfix.getDeviceInfo();
-    appendLog(result.ok ? "stdout" : "stderr", result.message || "Device info terminado.", result);
-    state.deviceInfo = result.data || result;
-    if (result.ok) {
-      state.deviceState = result.data?.connected ? "detected" : state.deviceState;
-      state.deviceMessage = result.message || state.deviceMessage;
-    }
-    renderStatus();
-  } catch (error) {
-    appendLog("stderr", error.message || String(error));
-    state.deviceState = "error";
-    state.deviceMessage = error.message || "Error desconocido.";
-    renderStatus();
-  } finally {
-    setBusy(false);
-  }
-}
-
-async function handleReadPit() {
-  setBusy(true);
-  try {
-    const result = await window.flashfix.readPit();
-    appendLog(result.ok ? "stdout" : "stderr", result.message || "Read PIT terminado.", result);
-    if (result.data?.pitJsonPath) {
-      state.pitPath = result.data.pitJsonPath;
-    }
-    state.pitData = result.data || null;
-    state.planPath = "";
-    state.deviceMessage = result.message || state.deviceMessage;
-    updateResultBox(els.pitBox, result.data);
-    renderStatus();
-  } catch (error) {
-    appendLog("stderr", error.message || String(error));
-  } finally {
-    setBusy(false);
-  }
-}
-
-async function handleSelectFirmware() {
-  const folder = await window.flashfix.selectFirmwareFolder();
-  if (!folder) {
-    return;
-  }
-  state.firmwarePath = folder;
-  state.analysisPath = "";
-  state.planPath = "";
-  renderStatus();
-  appendLog("system", `Firmware seleccionado: ${folder}`);
-}
-
-async function handleAnalyzeFirmware() {
-  if (!state.firmwarePath) {
-    appendLog("stderr", "Selecciona primero una carpeta de firmware.");
-    return;
-  }
-  setBusy(true);
-  try {
-    const result = await window.flashfix.analyzeFirmware(state.firmwarePath);
-    appendLog(result.ok ? "stdout" : "stderr", result.message || "Analyze terminado.", result);
-    if (result.data?.analysisPath) {
-      state.analysisPath = result.data.analysisPath;
-    }
-    state.planPath = "";
-    updateResultBox(els.analysisBox, result.data);
-    renderStatus();
-  } catch (error) {
-    appendLog("stderr", error.message || String(error));
-  } finally {
-    setBusy(false);
-  }
-}
-
-async function handleSelectPitFile() {
-  const file = await window.flashfix.selectJsonFile("Seleccionar PIT JSON");
-  if (!file) {
-    return;
-  }
-  state.pitPath = file;
-  state.planPath = "";
-  renderStatus();
-  appendLog("system", `PIT JSON seleccionado: ${file}`);
-}
-
-async function handleBuildPlan() {
-  if (!state.firmwarePath || !state.pitPath) {
-    appendLog("stderr", "Selecciona firmware y PIT JSON antes de construir el plan.");
-    return;
-  }
-  setBusy(true);
-  try {
-    const result = await window.flashfix.buildPlan(state.firmwarePath, state.pitPath);
-    appendLog(result.ok ? "stdout" : "stderr", result.message || "Build plan terminado.", result);
-    if (result.data?.planPath) {
-      state.planPath = result.data.planPath;
-    }
-    updateResultBox(els.planBox, result.data);
-    renderStatus();
-  } catch (error) {
-    appendLog("stderr", error.message || String(error));
-  } finally {
-    setBusy(false);
-  }
-}
-
-async function handleSelectPlanFile() {
-  const file = await window.flashfix.selectJsonFile("Seleccionar plan JSON");
-  if (!file) {
-    return;
-  }
-  state.planPath = file;
-  renderStatus();
-  appendLog("system", `Plan seleccionado: ${file}`);
-}
-
-async function handleFlashPlan() {
-  if (!state.planPath) {
-    appendLog("stderr", "Selecciona un plan JSON antes de flashear.");
-    return;
-  }
-
-  const confirmed = window.confirm(
-    "Vas a ejecutar el plan de flasheo revisado.\n\n" +
-      "Confirma que el dispositivo correcto está conectado y que entiendes el riesgo de pérdida de datos.",
-  );
-  if (!confirmed) {
-    return;
-  }
-
-  setBusy(true);
-  try {
-    const result = await window.flashfix.flashPlan(state.planPath);
-    appendLog(result.ok ? "stdout" : "stderr", result.message || "Flash plan terminado.", result);
-    updateResultBox(els.planBox, result.data || result);
-    state.deviceMessage = result.message || state.deviceMessage;
-    renderStatus();
-  } catch (error) {
-    appendLog("stderr", error.message || String(error));
-    state.deviceState = "error";
-    state.deviceMessage = error.message || "Error desconocido.";
-    renderStatus();
-  } finally {
-    setBusy(false);
-  }
-}
-
-async function handleCleanTemp() {
-  setBusy(true);
-  try {
-    const result = await window.flashfix.cleanTemp();
-    appendLog(result.ok ? "stdout" : "stderr", result.message || "Cleanup terminado.", result);
-  } catch (error) {
-    appendLog("stderr", error.message || String(error));
-  } finally {
-    setBusy(false);
-  }
-}
-
-function wireEvents() {
-  els.openLogsBtn.addEventListener("click", () => {
-    window.flashfix.openLogsFolder().catch((error) => appendLog("stderr", error.message || String(error)));
-  });
-  els.detectBtn.addEventListener("click", handleDetect);
-  els.deviceInfoBtn.addEventListener("click", handleDeviceInfo);
-  els.readPitBtn.addEventListener("click", handleReadPit);
-  els.selectFirmwareBtn.addEventListener("click", handleSelectFirmware);
-  els.analyzeBtn.addEventListener("click", handleAnalyzeFirmware);
-  els.selectPitBtn.addEventListener("click", handleSelectPitFile);
-  els.buildPlanBtn.addEventListener("click", handleBuildPlan);
-  els.selectPlanBtn.addEventListener("click", handleSelectPlanFile);
-  els.flashPlanBtn.addEventListener("click", handleFlashPlan);
-  els.cleanTempBtn.addEventListener("click", handleCleanTemp);
-  els.clearLogsBtn.addEventListener("click", clearLogView);
-
-  window.flashfix.onOperationStart((payload) => {
-    state.lastOperation = payload;
-    appendLog("system", `Inicio: ${payload.commandLine}`);
-  });
-
-  window.flashfix.onProgress((payload) => {
-    appendLog("progress", `${payload.step || "progress"}: ${payload.message || ""}`, payload);
-  });
-
-  window.flashfix.onLog((payload) => {
-    appendLog(payload.level || "system", payload.message || "Log", payload.data);
-  });
-
-  window.flashfix.onResult((payload) => {
-    appendLog("stdout", payload.message || "Resultado recibido.", payload);
-  });
-
-  window.flashfix.onError((payload) => {
-    appendLog("stderr", payload.message || "Error recibido.", payload);
-  });
-
-  window.flashfix.onRaw((payload) => {
-    appendLog("system", payload.line || "Salida raw.");
-  });
-
-  window.flashfix.onStderr((payload) => {
-    appendLog("stderr", payload.line || "stderr");
-  });
-
-  window.flashfix.onOperationEnd((payload) => {
-    state.lastOperation = payload;
-  });
-}
-
-wireEvents();
+onCoreEvent(handleCoreEvent);
+wireActions();
 refreshStatus().catch((error) => {
-  appendLog("stderr", error.message || String(error));
+  logger.add({
+    level: "error",
+    command: "status",
+    message: error.message || String(error),
+    details: { error: error.message || String(error) },
+    expandable: true,
+  });
 });

@@ -6,6 +6,8 @@ public sealed class DeviceInfo
     public string ConnectionMode { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string? Model { get; set; }
+    public string? ModelSource { get; set; }
+    public string? ModelConfidence { get; set; }
     public string? PortCom { get; set; }
     public string? PortName { get; set; }
     public string? PortPid { get; set; }

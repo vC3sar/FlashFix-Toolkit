@@ -71,6 +71,10 @@ function getTempDirCandidate() {
   return path.join(workspaceRoot(), "temp");
 }
 
+function getLicensesDirCandidate() {
+  return path.join(workspaceRoot(), "licenses");
+}
+
 function getCoreCandidates() {
   const root = workspaceRoot();
   return unique([
@@ -352,12 +356,19 @@ ipcMain.handle("app:getStatus", async () => {
     corePath,
     logsDir: await ensureLogsDir(),
     tempDir: await ensureTempDir(),
+    licensesDir: getLicensesDirCandidate(),
     allowedCommands: [...ALLOWED_COMMANDS],
   };
 });
 
 ipcMain.handle("app:openLogsFolder", async () => {
   const folder = await ensureLogsDir();
+  await shell.openPath(folder);
+  return { ok: true, folder };
+});
+
+ipcMain.handle("app:openLicensesFolder", async () => {
+  const folder = getLicensesDirCandidate();
   await shell.openPath(folder);
   return { ok: true, folder };
 });

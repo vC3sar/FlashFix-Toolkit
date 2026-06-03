@@ -32,6 +32,7 @@ internal sealed class FirmwareExtractor
         Directory.CreateDirectory(packageRoot);
 
         var index = 0;
+        var compressedContainerCount = 0;
         foreach (var entry in entries)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -73,7 +74,17 @@ internal sealed class FirmwareExtractor
                 var decompressed = await _lz4.DecompressIfNeededAsync(rawPath, packageRoot, cancellationToken);
                 preparedPath = decompressed.PreparedPath;
                 preparedName = Path.GetFileName(preparedPath);
-                package.Warnings.AddRange(decompressed.Warnings);
+                if (decompressed.Warnings.Count > 0 && preparedPath == rawPath)
+                {
+                    compressedContainerCount++;
+                    logger.WriteLine($"LZ4 left compressed for analysis: {packageType}:{safeName}");
+                    ConsoleProtocol.Log("info", $"LZ4 left compressed for analysis: {packageType}:{safeName}", false, new
+                    {
+                        packageType,
+                        originalName = safeName,
+                        preparedPath,
+                    });
+                }
             }
 
             var mapped = PartitionMapper.TryMap(preparedName, out var partition, out var confidence);
@@ -106,6 +117,18 @@ internal sealed class FirmwareExtractor
                 sizeBytes = new FileInfo(preparedPath).Length,
             });
             index++;
+        }
+
+        if (compressedContainerCount > 0)
+        {
+            var warning = $"{packageType} contains {compressedContainerCount} LZ4 container(s) kept compressed for analysis";
+            package.Warnings.Add(warning);
+            logger.WriteLine(warning);
+            ConsoleProtocol.Log("warning", warning, false, new
+            {
+                packageType,
+                compressedContainerCount,
+            });
         }
 
         return package;

@@ -22,9 +22,20 @@ internal sealed class OdinService
 
     public Task<bool> IsOdinAsync() => _odin.IsOdin();
 
-    public Task<bool> FindAndSetDownloadModeAsync() => _odin.FindAndSetDownloadMode();
+    public async Task<bool> FindAndSetDownloadModeAsync()
+    {
+        var port = await FindDownloadModePortAsync();
+        if (IsEmptyPort(port))
+        {
+            return false;
+        }
 
-    public Task<ItypePort> FindDownloadModePortAsync() => _odin.FindDownloadModePort();
+        return _odin.SetDownloadMode(port);
+    }
+
+    public Task<ItypePort> FindDownloadModePortAsync() => PortComm.FindDownloadModePort();
+
+    public bool SetDownloadMode(ItypePort port) => _odin.SetDownloadMode(port);
 
     public Task<Dictionary<string, string>> GetDeviceInfoAsync() => _odin.DVIF();
 
@@ -40,6 +51,14 @@ internal sealed class OdinService
     {
         _odin.Log -= HandleLog;
         _odin.ProgressChanged -= HandleProgress;
+    }
+
+    private static bool IsEmptyPort(ItypePort port)
+    {
+        return string.IsNullOrWhiteSpace(port.COM)
+            && string.IsNullOrWhiteSpace(port.Name)
+            && string.IsNullOrWhiteSpace(port.PID)
+            && string.IsNullOrWhiteSpace(port.VID);
     }
 
     private void HandleLog(string text, utils.MsgType color, bool isError)

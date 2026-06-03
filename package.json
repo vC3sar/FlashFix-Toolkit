@@ -5,12 +5,15 @@
   "description": "Uncomplicated FlashFix Toolkit with an Electron frontend and a C# backend for Samsung recovery workflows.",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
-    "dev": "electron .",
+    "build:styles": "tailwindcss -c tailwind.config.js -i ./renderer/input.css -o ./renderer/styles.css",
+    "watch:styles": "tailwindcss -c tailwind.config.js -i ./renderer/input.css -o ./renderer/styles.css --watch",
+    "start": "powershell -ExecutionPolicy Bypass -File .\\scripts\\start-app.ps1",
+    "dev": "powershell -ExecutionPolicy Bypass -File .\\scripts\\start-app.ps1",
     "publish:core": "powershell -ExecutionPolicy Bypass -File .\\scripts\\publish-core.ps1",
-    "check": "node --check main.js && node --check preload.js && node --check renderer/app.js"
+    "check": "node --check main.js && node --check preload.js"
   },
   "devDependencies": {
-    "electron": "^31.0.0"
+    "electron": "^31.0.0",
+    "tailwindcss": "^3.4.17"
   }
 }

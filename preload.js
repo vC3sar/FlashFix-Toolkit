@@ -9,6 +9,7 @@ function subscribe(channel, callback) {
 contextBridge.exposeInMainWorld("flashfix", {
   getStatus: () => ipcRenderer.invoke("app:getStatus"),
   openLogsFolder: () => ipcRenderer.invoke("app:openLogsFolder"),
+  openLicensesFolder: () => ipcRenderer.invoke("app:openLicensesFolder"),
   selectFirmwareFolder: () => ipcRenderer.invoke("app:selectFirmwareFolder"),
   selectJsonFile: (title) => ipcRenderer.invoke("app:selectJsonFile", title),
   detectDevice: () => ipcRenderer.invoke("core:detect"),
@@ -26,4 +27,19 @@ contextBridge.exposeInMainWorld("flashfix", {
   onRaw: (callback) => subscribe("core:raw", callback),
   onStderr: (callback) => subscribe("core:stderr", callback),
   onOperationEnd: (callback) => subscribe("core:operation-end", callback),
+  onCoreEvent: (callback) => {
+    const subscriptions = [
+      ["core:operation-start", "operation-start"],
+      ["core:progress", "progress"],
+      ["core:log", "log"],
+      ["core:result", "result"],
+      ["core:error", "error"],
+      ["core:raw", "raw"],
+      ["core:stderr", "stderr"],
+      ["core:operation-end", "operation-end"],
+    ].map(([channel, type]) =>
+      subscribe(channel, (payload) => callback({ type, channel, payload }))
+    );
+    return () => subscriptions.forEach((dispose) => dispose());
+  },
 });

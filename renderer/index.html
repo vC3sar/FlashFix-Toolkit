@@ -7,133 +7,333 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="app-shell">
-      <header class="hero">
-        <div>
-          <p class="eyebrow">Uncomplicated FlashFix Toolkit</p>
-          <h1>FlashFix Toolkit</h1>
-          <p class="subhead">
-            Frontend Electron para `FlashFix.Core` con SharpOdinClient como motor Samsung.
-          </p>
-        </div>
-        <div class="badge-row">
-          <span class="badge" id="backendBadge">Backend: verificando...</span>
-          <span class="badge" id="deviceBadge">Dispositivo: desconocido</span>
+    <div class="ff-shell">
+      <header class="ff-topbar">
+        <div class="ff-topbar-grid">
+          <div class="ff-brand">
+            <div class="ff-brand-mark">FF</div>
+            <div>
+              <div class="ff-eyebrow">Uncomplicated FlashFix Toolkit</div>
+              <h1 class="ff-title">FlashFix Toolkit</h1>
+              <p class="ff-subtitle">
+                Herramienta de escritorio para recuperación y reinstalación de firmware oficial Samsung Galaxy.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-3 xl:items-end">
+            <div class="ff-badge-row">
+              <span id="backendBadge" class="ff-badge ff-badge--muted">Backend: verificando...</span>
+              <span id="deviceBadge" class="ff-badge ff-badge--muted">Dispositivo: desconocido</span>
+              <span id="operationBadge" class="ff-badge ff-badge--muted">Operación: inactiva</span>
+            </div>
+            <div class="ff-muted text-right">SharpOdinClient + Electron + UI moderna</div>
+          </div>
         </div>
       </header>
 
-      <main class="layout">
-        <section class="panel">
-          <div class="panel-header">
-            <h2>Estado del backend</h2>
-            <button id="openLogsBtn" class="secondary">Abrir logs</button>
-          </div>
-          <div class="status-grid">
-            <div class="status-card">
-              <span class="status-label">Backend</span>
-              <strong id="backendStatusText">Cargando...</strong>
-              <small id="backendPathText">Sin ruta</small>
-            </div>
-            <div class="status-card">
-              <span class="status-label">Logs</span>
-              <strong id="logsStatusText">Pendiente</strong>
-              <small id="logsPathText">logs/</small>
-            </div>
-            <div class="status-card">
-              <span class="status-label">Temp</span>
-              <strong id="tempStatusText">Pendiente</strong>
-              <small id="tempPathText">temp/</small>
-            </div>
-          </div>
-        </section>
+      <div class="ff-workspace">
+        <aside class="ff-sidebar">
+          <div class="ff-sidebar-title">Navegación</div>
+          <nav class="ff-nav">
+            <button class="ff-nav-btn" data-section="dashboard" aria-current="page">Dashboard</button>
+            <button class="ff-nav-btn" data-section="device">Device</button>
+            <button class="ff-nav-btn" data-section="firmware">Firmware</button>
+            <button class="ff-nav-btn" data-section="pit">PIT</button>
+            <button class="ff-nav-btn" data-section="flash-plan">Flash Plan</button>
+            <button class="ff-nav-btn" data-section="logs">Logs</button>
+            <button class="ff-nav-btn" data-section="settings">Settings</button>
+          </nav>
 
-        <section class="panel">
-          <div class="panel-header">
-            <h2>Estado del dispositivo</h2>
-            <div class="action-row">
-              <button id="detectBtn">Detectar</button>
-              <button id="deviceInfoBtn">Device info</button>
-              <button id="readPitBtn">Leer PIT</button>
-            </div>
+          <div class="mt-6 space-y-3">
+            <div class="ff-sidebar-title">Acciones rápidas</div>
+            <button id="openLogsQuickBtn" class="ff-btn ff-btn-ghost w-full">Abrir carpeta de logs</button>
+            <button id="cleanTempBtn" class="ff-btn ff-btn-ghost w-full">Limpiar temporales</button>
           </div>
-          <div class="status-card full-width">
-            <span class="status-label">Resultado</span>
-            <strong id="deviceStatusText">Sin validar</strong>
-            <small id="deviceDetailText">Usa Detectar para iniciar.</small>
-          </div>
-          <pre id="deviceInfoBox" class="data-box">Sin información del dispositivo.</pre>
-          <pre id="pitBox" class="data-box">Sin PIT todavía.</pre>
-        </section>
+        </aside>
 
-        <section class="panel">
-          <div class="panel-header">
-            <h2>Importar firmware</h2>
-            <div class="action-row">
-              <button id="selectFirmwareBtn" class="secondary">Elegir carpeta</button>
+        <main class="ff-main">
+          <section id="section-dashboard" class="ff-section ff-section-panel is-active" data-section-panel="dashboard">
+            <div class="ff-section-header">
+              <div>
+                <h2 class="ff-section-title">Dashboard</h2>
+                <p class="ff-section-subtitle">Estado general del core, dispositivo, firmware y plan.</p>
+              </div>
             </div>
-          </div>
-          <div class="status-card full-width">
-            <span class="status-label">Carpeta</span>
-            <strong id="firmwarePathText">No seleccionada</strong>
-            <small id="firmwareHintText">Carpeta con BL/AP/CP/CSC/HOME_CSC.</small>
-          </div>
-        </section>
+            <div id="dashboardCards" class="ff-grid-6"></div>
+          </section>
 
-        <section class="panel">
-          <div class="panel-header">
-            <h2>Análisis de firmware</h2>
-            <div class="action-row">
-              <button id="analyzeBtn">Analizar firmware</button>
-              <button id="selectPitBtn" class="secondary">Elegir PIT JSON</button>
+          <section id="section-device" class="ff-section ff-section-panel" data-section-panel="device">
+            <div class="ff-section-header">
+              <div>
+                <h2 class="ff-section-title">Device</h2>
+                <p class="ff-section-subtitle">Detección en Download Mode y lectura de información del dispositivo.</p>
+              </div>
+              <div class="ff-toolbar">
+                <button id="detectBtn" class="ff-btn ff-btn-primary">Detectar dispositivo</button>
+                <button id="deviceInfoBtn" class="ff-btn">Información del dispositivo</button>
+                <button id="readPitBtnDevice" class="ff-btn">Leer PIT</button>
+              </div>
             </div>
-          </div>
-          <div class="status-card full-width">
-            <span class="status-label">PIT JSON</span>
-            <strong id="pitPathText">No seleccionado</strong>
-            <small id="pitHintText">Se puede usar el PIT generado por el backend.</small>
-          </div>
-          <pre id="analysisBox" class="data-box">Sin análisis todavía.</pre>
-        </section>
-
-        <section class="panel">
-          <div class="panel-header">
-            <h2>Plan de flasheo</h2>
-            <div class="action-row">
-              <button id="buildPlanBtn">Construir plan</button>
-              <button id="selectPlanBtn" class="secondary">Elegir plan JSON</button>
+            <div class="ff-grid-2">
+              <div class="ff-card">
+                <div class="ff-card-label">Estado visual</div>
+                <div id="deviceStatusText" class="ff-card-value">Sin validar</div>
+                <div id="deviceDetailText" class="ff-card-note">Usa Detectar para iniciar.</div>
+                <div class="mt-3" id="deviceBadgeInline"></div>
+              </div>
+              <div class="ff-card">
+                <div class="ff-card-label">Modelo</div>
+                <div id="deviceModelText" class="ff-card-value">Modelo no disponible</div>
+                <div id="deviceModelMetaText" class="ff-card-note">Sin fuente de modelo</div>
+              </div>
             </div>
-          </div>
-          <div class="status-card full-width">
-            <span class="status-label">Plan</span>
-            <strong id="planPathText">No generado</strong>
-            <small id="planHintText">Solo se incluyen particiones permitidas y mapeadas.</small>
-          </div>
-          <pre id="planBox" class="data-box">Sin plan todavía.</pre>
-        </section>
-
-        <section class="panel">
-          <div class="panel-header">
-            <h2>Ejecutar plan</h2>
-            <div class="action-row">
-              <button id="flashPlanBtn" class="danger">Flashear plan</button>
-              <button id="cleanTempBtn" class="secondary">Limpiar temporales</button>
+            <div class="mt-4 grid gap-4 xl:grid-cols-2">
+              <div>
+                <div class="ff-card mb-3">
+                  <div class="ff-card-label">Datos del dispositivo</div>
+                  <pre id="deviceInfoBox" class="ff-pre mt-3 max-h-[28rem]">Sin información del dispositivo.</pre>
+                </div>
+              </div>
+              <div>
+                <div class="ff-card">
+                  <div class="ff-card-label">PIT resumido</div>
+                  <pre id="pitBox" class="ff-pre mt-3 max-h-[28rem]">Sin PIT todavía.</pre>
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="warning-inline">
-            Flashear firmware incorrecto puede dañar el dispositivo. CSC puede borrar datos. HOME_CSC no garantiza preservarlos.
-          </div>
-        </section>
+          </section>
 
-        <section class="panel logs-panel">
-          <div class="panel-header">
-            <h2>Logs en tiempo real</h2>
-            <button id="clearLogsBtn" class="secondary">Limpiar vista</button>
-          </div>
-          <div id="logStream" class="log-stream" aria-live="polite"></div>
-        </section>
-      </main>
+          <section id="section-firmware" class="ff-section ff-section-panel" data-section-panel="firmware">
+            <div class="ff-section-header">
+              <div>
+                <h2 class="ff-section-title">Firmware</h2>
+                <p class="ff-section-subtitle">Selecciona la carpeta del firmware y revisa los paquetes detectados.</p>
+              </div>
+              <div class="ff-toolbar">
+                <button id="selectFirmwareBtn" class="ff-btn ff-btn-primary">Elegir carpeta</button>
+                <button id="analyzeBtn" class="ff-btn">Analizar firmware</button>
+              </div>
+            </div>
+
+            <div class="ff-grid-2">
+              <div class="ff-card">
+                <div class="ff-card-label">Carpeta firmware</div>
+                <div id="firmwarePathText" class="ff-card-value">No seleccionada</div>
+                <div id="firmwareHintText" class="ff-card-note">Carpeta con BL/AP/CP/CSC/HOME_CSC.</div>
+              </div>
+              <div class="ff-card">
+                <div class="ff-card-label">Análisis</div>
+                <pre id="analysisSummaryBox" class="ff-pre mt-3 max-h-44">Sin análisis todavía.</pre>
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <div class="ff-section-title mb-3">Paquetes detectados</div>
+              <div id="firmwarePackageGrid" class="ff-grid-3"></div>
+            </div>
+          </section>
+
+          <section id="section-pit" class="ff-section ff-section-panel" data-section-panel="pit">
+            <div class="ff-section-header">
+              <div>
+                <h2 class="ff-section-title">PIT</h2>
+                <p class="ff-section-subtitle">Lectura y análisis de particiones detectadas en el dispositivo.</p>
+              </div>
+              <div class="ff-toolbar">
+                <button id="selectPitBtn" class="ff-btn ff-btn-primary">Elegir PIT JSON</button>
+                <button id="readPitBtnSection" class="ff-btn">Leer PIT</button>
+              </div>
+            </div>
+
+            <div class="ff-grid-2">
+              <div class="ff-card">
+                <div class="ff-card-label">Archivo PIT</div>
+                <div id="pitPathText" class="ff-card-value">No seleccionado</div>
+                <div id="pitHintText" class="ff-card-note">Se puede usar el PIT generado por el backend.</div>
+              </div>
+              <div class="ff-card">
+                <div class="ff-card-label">Resumen</div>
+                <pre id="pitSummaryBox" class="ff-pre mt-3 max-h-44">Sin PIT todavía.</pre>
+              </div>
+            </div>
+
+            <div class="mt-4 ff-card">
+              <div class="ff-section-title mb-3">Tabla de particiones</div>
+              <div class="overflow-auto">
+                <table class="ff-table">
+                  <thead>
+                    <tr>
+                      <th>Partición</th>
+                      <th>Id</th>
+                      <th>Flash file</th>
+                      <th>Bloques</th>
+                      <th>Inicio</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pitTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section id="section-flash-plan" class="ff-section ff-section-panel" data-section-panel="flash-plan">
+            <div class="ff-section-header">
+              <div>
+                <h2 class="ff-section-title">Flash Plan</h2>
+                <p class="ff-section-subtitle">Construye un plan revisado y ejecútalo solo si la revisión es correcta.</p>
+              </div>
+              <div class="ff-toolbar">
+                <button id="buildPlanBtn" class="ff-btn ff-btn-primary">Construir plan</button>
+                <button id="selectPlanBtn" class="ff-btn">Elegir plan JSON</button>
+                <button id="flashPlanBtn" class="ff-btn ff-btn-danger">Ejecutar plan</button>
+              </div>
+            </div>
+
+            <div class="ff-grid-2">
+              <div class="ff-card">
+                <div class="ff-card-label">Plan</div>
+                <div id="planPathText" class="ff-card-value">No generado</div>
+                <div id="planHintText" class="ff-card-note">Solo se incluyen particiones permitidas y mapeadas.</div>
+              </div>
+              <div class="ff-card">
+                <div class="ff-card-label">Resumen del plan</div>
+                <pre id="planSummaryBox" class="ff-pre mt-3 max-h-44">Sin plan todavía.</pre>
+              </div>
+            </div>
+
+            <div class="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,0.9fr)]">
+              <div class="ff-card">
+                <div class="ff-section-title mb-3">Tabla del plan</div>
+                <div class="overflow-auto">
+                  <table class="ff-table">
+                    <thead>
+                      <tr>
+                        <th>Archivo</th>
+                        <th>Partición</th>
+                        <th>Estado PIT</th>
+                        <th>Riesgo</th>
+                        <th>Incluir</th>
+                        <th>Advertencias</th>
+                      </tr>
+                    </thead>
+                    <tbody id="planTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="ff-card">
+                <div class="ff-section-title mb-3">Advertencias</div>
+                <pre id="planWarningsBox" class="ff-pre max-h-[34rem]">Sin advertencias.</pre>
+              </div>
+            </div>
+          </section>
+
+          <section id="section-logs" class="ff-section ff-section-panel" data-section-panel="logs">
+            <div class="ff-section-header">
+              <div>
+                <h2 class="ff-section-title">Logs</h2>
+                <p class="ff-section-subtitle">Consola visual con filtros, búsqueda y detalles expandibles.</p>
+              </div>
+            </div>
+
+            <div class="ff-card mb-4">
+              <div class="ff-card-label">Operación actual</div>
+              <div class="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+                <div>
+                  <div id="currentOperationTitle" class="ff-card-value">Sin operación</div>
+                  <div id="currentOperationMessage" class="ff-card-note">No hay tareas en curso.</div>
+                  <div id="currentOperationMeta" class="mt-2 text-sm text-flashfix-muted"></div>
+                </div>
+                <div>
+                  <div class="ff-progress">
+                    <div id="currentOperationProgress" class="ff-progress-bar" style="width: 0%"></div>
+                  </div>
+                  <div id="currentOperationProgressText" class="mt-2 text-sm text-flashfix-muted">0%</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="ff-log-console">
+              <div class="ff-log-toolbar">
+                <div class="ff-log-toolbar-group">
+                  <button class="ff-btn ff-btn-ghost" data-log-filter="all">Todos</button>
+                  <button class="ff-btn ff-btn-ghost" data-log-filter="info">Info</button>
+                  <button class="ff-btn ff-btn-ghost" data-log-filter="success">Success</button>
+                  <button class="ff-btn ff-btn-ghost" data-log-filter="warning">Warning</button>
+                  <button class="ff-btn ff-btn-ghost" data-log-filter="error">Error</button>
+                  <button class="ff-btn ff-btn-ghost" data-log-filter="debug">Debug</button>
+                </div>
+                <div class="ff-log-toolbar-group">
+                  <input id="logSearchInput" class="ff-input w-64 max-w-full" type="search" placeholder="Buscar logs..." />
+                  <span id="logCountText" class="ff-badge ff-badge--muted">0 visibles</span>
+                </div>
+              </div>
+              <div class="ff-log-toolbar border-t border-flashfix-border">
+                <div class="ff-log-toolbar-group">
+                  <button id="copyVisibleLogsBtn" class="ff-btn">Copiar visibles</button>
+                  <button id="copyAllLogsBtn" class="ff-btn">Copiar todo</button>
+                  <button id="exportLogsBtn" class="ff-btn">Exportar log actual</button>
+                </div>
+                <div class="ff-log-toolbar-group">
+                  <button id="clearLogsBtn" class="ff-btn ff-btn-ghost">Limpiar vista</button>
+                  <button id="openLogsBtn" class="ff-btn ff-btn-ghost">Abrir carpeta</button>
+                </div>
+              </div>
+              <div id="logStream" class="ff-log-stream"></div>
+            </div>
+          </section>
+
+          <section id="section-settings" class="ff-section ff-section-panel" data-section-panel="settings">
+            <div class="ff-section-header">
+              <div>
+                <h2 class="ff-section-title">Settings</h2>
+                <p class="ff-section-subtitle">Rutas, mantenimiento y notas legales del proyecto.</p>
+              </div>
+            </div>
+
+            <div class="ff-grid-2">
+              <div class="ff-card space-y-3">
+                <div class="ff-card-label">Core</div>
+                <div class="ff-muted">Ruta del core</div>
+                <details class="ff-details">
+                  <summary id="backendPathText">engines/FlashFix.Core.exe</summary>
+                  <pre class="ff-pre mt-3" id="backendPathFullBox">Sin ruta.</pre>
+                </details>
+                <div class="ff-muted">Ruta de logs</div>
+                <details class="ff-details">
+                  <summary id="logsPathText">logs/</summary>
+                  <pre class="ff-pre mt-3" id="logsPathFullBox">Sin ruta.</pre>
+                </details>
+                <div class="ff-muted">Ruta temporal</div>
+                <details class="ff-details">
+                  <summary id="tempPathText">temp/</summary>
+                  <pre class="ff-pre mt-3" id="tempPathFullBox">Sin ruta.</pre>
+                </details>
+                <div class="ff-muted">Licencias</div>
+                <details class="ff-details">
+                  <summary id="licensesPathText">licenses/</summary>
+                  <pre class="ff-pre mt-3" id="licensesPathFullBox">Sin ruta.</pre>
+                </details>
+              </div>
+
+              <div class="ff-card space-y-4">
+                <div class="ff-card-label">Mantenimiento</div>
+                <div class="ff-toolbar">
+                  <button id="openLicensesBtn" class="ff-btn">Ver licencias</button>
+                  <button id="cleanTempSecondaryBtn" class="ff-btn ff-btn-ghost">Limpiar temporales</button>
+                </div>
+                <div class="ff-card-label">Disclaimer</div>
+                <div id="disclaimerText" class="ff-panel-box text-sm leading-6 text-flashfix-muted">
+                  FlashFix Toolkit is an independent firmware utility.
+                  It is not affiliated with or endorsed by Samsung.
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
     </div>
 
-    <script src="./app.js"></script>
+    <script type="module" src="./app.js"></script>
   </body>
 </html>

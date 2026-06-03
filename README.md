@@ -82,6 +82,50 @@ npm install
 npm start
 ```
 
+## UI / Theme
+
+The renderer uses Tailwind CSS with a compiled stylesheet at `renderer/styles.css`.
+
+Source files:
+
+- `tailwind.config.js`
+- `renderer/input.css`
+- `renderer/index.html`
+- `renderer/app.js`
+- `renderer/js/*.js`
+
+Build the theme manually:
+
+```bash
+npm run build:styles
+```
+
+Watch the theme while editing:
+
+```bash
+npm run watch:styles
+```
+
+What controls the look and feel:
+
+- `tailwind.config.js` defines the FlashFix color palette and shadow tokens.
+- `renderer/input.css` defines reusable component classes with `@apply`.
+- `renderer/index.html` defines the layout structure.
+- `renderer/js/logger-ui.js` manages the log console rendering, filters, search, copy/export actions, and expandable details.
+- `renderer/js/navigation.js` switches the sidebar sections.
+
+Log behavior:
+
+- The backend emits one JSON object per line to stdout.
+- `type=progress` is rendered as a running/info event with progress state.
+- `type=result` is rendered as success when `ok=true` and error when `ok=false`.
+- `type=error` is rendered as error.
+- `type=warning` is rendered as warning.
+- `type=debug` and raw lines are rendered as muted/debug entries.
+- Entries with `data`, `details`, `stdout`, `stderr`, or `stack` can be expanded inline.
+
+The UI does not clear the real log files when you click "Limpiar vista". It only clears the visible console buffer.
+
 ## Build `FlashFix.Core`
 
 Build the backend from the project in `core/FlashFix.Core/`.

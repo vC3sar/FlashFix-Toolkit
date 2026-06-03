@@ -1,0 +1,324 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body {
+    @apply min-h-full bg-flashfix-bg text-flashfix-text antialiased;
+  }
+
+  body {
+    background-image:
+      radial-gradient(circle at top left, rgba(129, 140, 248, 0.12), transparent 26%),
+      radial-gradient(circle at top right, rgba(56, 189, 248, 0.07), transparent 18%),
+      linear-gradient(180deg, rgba(11, 16, 32, 1), rgba(9, 12, 24, 1));
+  }
+
+  * {
+    @apply border-flashfix-border;
+  }
+
+  ::selection {
+    background: rgba(129, 140, 248, 0.35);
+    color: #ffffff;
+  }
+}
+
+@layer components {
+  .ff-shell {
+    @apply mx-auto flex min-h-screen max-w-[1800px] flex-col px-4 py-4 lg:px-6;
+  }
+
+  .ff-topbar {
+    @apply mb-4 rounded-3xl border border-flashfix-border bg-flashfix-panel/90 px-5 py-4 shadow-soft backdrop-blur;
+  }
+
+  .ff-topbar-grid {
+    @apply flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between;
+  }
+
+  .ff-brand {
+    @apply flex items-start gap-4;
+  }
+
+  .ff-brand-mark {
+    @apply flex h-12 w-12 items-center justify-center rounded-2xl border border-flashfix-border bg-flashfix-panel2 text-lg font-semibold text-flashfix-accent shadow-insetSoft;
+  }
+
+  .ff-eyebrow {
+    @apply text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-flashfix-accent;
+  }
+
+  .ff-title {
+    @apply text-2xl font-semibold tracking-tight text-flashfix-text sm:text-3xl;
+  }
+
+  .ff-subtitle {
+    @apply mt-1 max-w-3xl text-sm leading-6 text-flashfix-muted;
+  }
+
+  .ff-badge-row {
+    @apply flex flex-wrap gap-2;
+  }
+
+  .ff-badge {
+    @apply inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium tracking-wide shadow-insetSoft;
+  }
+
+  .ff-badge--success {
+    @apply border-flashfix-success/30 bg-flashfix-success/10 text-flashfix-success;
+  }
+
+  .ff-badge--warning {
+    @apply border-flashfix-warning/30 bg-flashfix-warning/10 text-flashfix-warning;
+  }
+
+  .ff-badge--danger {
+    @apply border-flashfix-danger/30 bg-flashfix-danger/10 text-flashfix-danger;
+  }
+
+  .ff-badge--info {
+    @apply border-flashfix-info/30 bg-flashfix-info/10 text-flashfix-info;
+  }
+
+  .ff-badge--muted {
+    @apply border-flashfix-border bg-flashfix-panel2 text-flashfix-muted;
+  }
+
+  .ff-badge--running {
+    @apply border-flashfix-accent/30 bg-flashfix-accent/10 text-flashfix-accent;
+  }
+
+  .ff-workspace {
+    @apply grid gap-4 xl:grid-cols-[16rem_minmax(0,1fr)];
+  }
+
+  .ff-sidebar {
+    @apply rounded-3xl border border-flashfix-border bg-flashfix-panel/90 p-4 shadow-soft backdrop-blur;
+  }
+
+  .ff-main {
+    @apply min-w-0 space-y-4;
+  }
+
+  .ff-sidebar-title {
+    @apply mb-3 px-2 text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-flashfix-dim;
+  }
+
+  .ff-nav {
+    @apply flex flex-col gap-1;
+  }
+
+  .ff-nav-btn {
+    @apply flex w-full items-center justify-between rounded-2xl border border-transparent px-3 py-2.5 text-left text-sm font-medium text-flashfix-muted transition;
+  }
+
+  .ff-nav-btn:hover {
+    @apply border-flashfix-border bg-flashfix-panel2 text-flashfix-text;
+  }
+
+  .ff-nav-btn[aria-current="page"] {
+    @apply border-flashfix-accent/30 bg-flashfix-accent/10 text-flashfix-text;
+  }
+
+  .ff-section {
+    @apply rounded-3xl border border-flashfix-border bg-flashfix-panel/90 shadow-soft backdrop-blur;
+  }
+
+  .ff-section-panel {
+    @apply hidden p-5 lg:p-6;
+  }
+
+  .ff-section-panel.is-active {
+    @apply block;
+  }
+
+  .ff-section-header {
+    @apply mb-5 flex flex-col gap-3 border-b border-flashfix-border pb-4 lg:flex-row lg:items-center lg:justify-between;
+  }
+
+  .ff-section-title {
+    @apply text-lg font-semibold text-flashfix-text;
+  }
+
+  .ff-section-subtitle {
+    @apply mt-1 text-sm text-flashfix-muted;
+  }
+
+  .ff-grid-6 {
+    @apply grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6;
+  }
+
+  .ff-grid-3 {
+    @apply grid gap-3 md:grid-cols-2 xl:grid-cols-3;
+  }
+
+  .ff-grid-2 {
+    @apply grid gap-3 xl:grid-cols-2;
+  }
+
+  .ff-card {
+    @apply rounded-2xl border border-flashfix-border bg-flashfix-panel2/80 p-4 shadow-insetSoft;
+  }
+
+  .ff-card-title {
+    @apply text-sm font-semibold text-flashfix-text;
+  }
+
+  .ff-card-label {
+    @apply text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-flashfix-dim;
+  }
+
+  .ff-card-value {
+    @apply mt-2 text-xl font-semibold text-flashfix-text;
+  }
+
+  .ff-card-note {
+    @apply mt-1 text-sm text-flashfix-muted;
+  }
+
+  .ff-toolbar {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .ff-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-flashfix-border bg-flashfix-panel2 px-4 py-2.5 text-sm font-medium text-flashfix-text transition hover:border-flashfix-accent/50 hover:bg-flashfix-accent/10;
+  }
+
+  .ff-btn-primary {
+    @apply border-flashfix-accent/30 bg-flashfix-accent/10 text-flashfix-text hover:bg-flashfix-accent/20 hover:border-flashfix-accent;
+  }
+
+  .ff-btn-danger {
+    @apply border-flashfix-danger/30 bg-flashfix-danger/10 text-flashfix-text hover:bg-flashfix-danger/20 hover:border-flashfix-danger;
+  }
+
+  .ff-btn-ghost {
+    @apply border-transparent bg-transparent text-flashfix-muted hover:border-flashfix-border hover:bg-flashfix-panel2 hover:text-flashfix-text;
+  }
+
+  .ff-btn:disabled {
+    @apply cursor-not-allowed opacity-50 hover:border-flashfix-border hover:bg-flashfix-panel2 hover:text-flashfix-text;
+  }
+
+  .ff-input {
+    @apply w-full rounded-2xl border border-flashfix-border bg-flashfix-panel2 px-4 py-2.5 text-sm text-flashfix-text outline-none transition placeholder:text-flashfix-dim focus:border-flashfix-accent focus:ring-2 focus:ring-flashfix-accent/20;
+  }
+
+  .ff-panel-box {
+    @apply rounded-2xl border border-flashfix-border bg-[#0B0D12]/90 p-4 shadow-insetSoft;
+  }
+
+  .ff-pre {
+    @apply overflow-auto rounded-2xl border border-flashfix-border bg-[#090B10] p-4 font-mono text-xs leading-6 text-flashfix-text;
+  }
+
+  .ff-table {
+    @apply min-w-full border-separate border-spacing-0 overflow-hidden rounded-2xl border border-flashfix-border bg-[#0B0D12]/90;
+  }
+
+  .ff-table thead th {
+    @apply border-b border-flashfix-border bg-flashfix-panel2 px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-flashfix-dim;
+  }
+
+  .ff-table tbody td {
+    @apply border-b border-flashfix-border px-4 py-3 text-sm text-flashfix-text;
+  }
+
+  .ff-table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+
+  .ff-muted {
+    @apply text-sm text-flashfix-muted;
+  }
+
+  .ff-details {
+    @apply rounded-2xl border border-flashfix-border bg-flashfix-panel2/70 p-3;
+  }
+
+  .ff-details summary {
+    @apply cursor-pointer list-none text-sm font-medium text-flashfix-text;
+  }
+
+  .ff-details summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .ff-progress {
+    @apply h-2 w-full overflow-hidden rounded-full bg-flashfix-panel2;
+  }
+
+  .ff-progress-bar {
+    @apply h-full rounded-full bg-gradient-to-r from-flashfix-accent to-flashfix-info transition-[width] duration-300;
+  }
+
+  .ff-log-console {
+    @apply flex h-[420px] flex-col overflow-hidden rounded-2xl border border-flashfix-border bg-[#090B10]/95;
+  }
+
+  .ff-log-toolbar {
+    @apply flex flex-col gap-3 border-b border-flashfix-border bg-flashfix-panel2/80 p-3 lg:flex-row lg:items-center lg:justify-between;
+  }
+
+  .ff-log-toolbar-group {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .ff-log-stream {
+    @apply min-h-0 flex-1 overflow-auto px-3 py-2 font-mono text-xs leading-6;
+  }
+
+  .ff-log-empty {
+    @apply flex h-full items-center justify-center text-sm text-flashfix-dim;
+  }
+
+  .ff-log-line {
+    @apply mb-2 rounded-2xl border border-transparent px-3 py-2 transition;
+  }
+
+  .ff-log-line:hover {
+    @apply border-flashfix-border bg-flashfix-panel2/60;
+  }
+
+  .ff-log-meta {
+    @apply flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.72rem];
+  }
+
+  .ff-log-time {
+    @apply text-flashfix-dim;
+  }
+
+  .ff-log-command {
+    @apply rounded-full border border-flashfix-border bg-flashfix-panel2 px-2.5 py-0.5 text-flashfix-muted;
+  }
+
+  .ff-log-level {
+    @apply rounded-full px-2.5 py-0.5 font-semibold uppercase tracking-[0.16em];
+  }
+
+  .ff-log-message {
+    @apply mt-1 whitespace-pre-wrap text-sm text-flashfix-text;
+  }
+
+  .ff-log-details-btn {
+    @apply mt-2 text-[0.72rem] font-medium text-flashfix-accent hover:text-flashfix-accentHover;
+  }
+
+  .ff-log-details {
+    @apply mt-2 hidden rounded-xl border border-flashfix-border bg-[#07090e] p-3 text-[0.72rem] text-flashfix-text;
+  }
+
+  .ff-log-details.is-open {
+    @apply block;
+  }
+
+  .ff-log-details pre {
+    @apply mt-0 max-h-72 overflow-auto whitespace-pre rounded-xl border border-flashfix-border bg-[#07090e] p-3 font-mono text-[0.72rem] leading-6 text-flashfix-text;
+  }
+}
