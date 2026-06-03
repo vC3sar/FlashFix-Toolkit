@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FlashFix Toolkit</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Uncomplicated FlashFix Toolkit</p>
+          <h1>FlashFix Toolkit</h1>
+          <p class="subhead">
+            Recuperación y reinstalación controlada de firmware Samsung con Heimdall.
+          </p>
+        </div>
+        <div class="badge-row">
+          <span class="badge" id="heimdallBadge">Heimdall: verificando...</span>
+          <span class="badge" id="deviceBadge">Dispositivo: desconocido</span>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Estado y validación</h2>
+            <button id="openLogsBtn" class="secondary">Abrir logs</button>
+          </div>
+
+          <div class="status-grid">
+            <div class="status-card">
+              <span class="status-label">Heimdall</span>
+              <strong id="heimdallStatusText">Cargando...</strong>
+              <small id="heimdallPathText">Ruta no resuelta</small>
+            </div>
+            <div class="status-card">
+              <span class="status-label">Dispositivo</span>
+              <strong id="deviceStatusText">Sin validar</strong>
+              <small id="deviceDetailText">Usa Detectar dispositivo.</small>
+            </div>
+            <div class="status-card">
+              <span class="status-label">Logs</span>
+              <strong id="logsStatusText">Pendientes</strong>
+              <small id="logsPathText">Carpeta no resuelta</small>
+            </div>
+          </div>
+
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Acciones Heimdall</h2>
+            <div class="action-row">
+              <button id="detectBtn">Detectar dispositivo</button>
+              <button id="pitBtn">Leer PIT</button>
+              <button id="rebootBtn" class="danger">Reiniciar dispositivo</button>
+            </div>
+          </div>
+          <p class="panel-note">
+            Los comandos se envían mediante IPC seguro y se registran en tiempo real.
+          </p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Firmware Samsung</h2>
+            <span class="panel-note">Validación básica de archivos .tar, .tar.md5 y .img</span>
+          </div>
+          <p class="panel-note">
+            Esta versión prepara los archivos, pero no intenta abrir ni mapear automáticamente los
+            contenedores Samsung para flasheo Odin-like.
+          </p>
+          <div id="packageList" class="package-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Flasheo experto por partición</h2>
+            <button id="addRowBtn" class="secondary">Agregar partición</button>
+          </div>
+          <p class="panel-note">
+            Solo se aceptan particiones de una lista blanca y archivos .img validados.
+          </p>
+          <div id="expertRows" class="expert-rows"></div>
+          <div class="flash-footer">
+            <button id="flashBtn" class="danger">Flashear selección experta</button>
+          </div>
+        </section>
+
+        <section class="panel logs-panel">
+          <div class="panel-header">
+            <h2>Salida en tiempo real</h2>
+            <button id="clearLogsBtn" class="secondary">Limpiar vista</button>
+          </div>
+          <div id="logStream" class="log-stream" aria-live="polite"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

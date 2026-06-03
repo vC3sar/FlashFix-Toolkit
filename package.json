@@ -1,0 +1,15 @@
+{
+  "name": "flashfix-toolkit",
+  "productName": "FlashFix Toolkit",
+  "version": "0.1.0",
+  "description": "Uncomplicated FlashFix Toolkit for controlled Samsung recovery and flashing workflows.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "check": "node --check main.js && node --check preload.js && node --check renderer/app.js"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0"
+  }
+}
