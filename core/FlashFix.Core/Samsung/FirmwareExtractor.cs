@@ -1,13 +1,16 @@
 using FlashFix.Core.Infrastructure;
 using FlashFix.Core.Logging;
 using FlashFix.Core.Models;
+using SharpOdinClient;
 using SharpOdinClient.util;
 
 namespace FlashFix.Core.Samsung;
 
 internal sealed class FirmwareExtractor
 {
+    private const long MaxAutoDecompressBytes = 512L * 1024L * 1024L;
     private readonly Lz4Service _lz4 = new();
+    private readonly Odin _odin = new();
 
     public async Task<FirmwarePackage> ExtractPackageAsync(
         string packageType,
@@ -44,6 +47,36 @@ internal sealed class FirmwareExtractor
             }
 
             var safeName = SanitizeFileName(originalName);
+
+            if (safeName.Equals("super.img.lz4", StringComparison.OrdinalIgnoreCase))
+            {
+                compressedContainerCount++;
+                var skipped = $"Skipped oversized tar entry during analysis: {packageType}:{safeName}";
+                logger.WriteLine(skipped);
+                ConsoleProtocol.Log("info", skipped, false, new
+                {
+                    packageType,
+                    originalName = safeName,
+                    entrySizeBytes = entry.Filesize,
+                });
+
+                package.Images.Add(new FirmwareImage
+                {
+                    SourcePackage = packageType,
+                    OriginalName = safeName,
+                    PreparedName = safeName,
+                    PreparedPath = string.Empty,
+                    SizeBytes = entry.Filesize,
+                    SuggestedPartition = string.Empty,
+                    Confidence = "low",
+                    Status = "skipped",
+                    IsLz4 = true,
+                    Warnings = new List<string> { "Oversized container skipped during analysis" },
+                });
+                index++;
+                continue;
+            }
+
             byte[] extracted;
             try
             {
@@ -71,19 +104,39 @@ internal sealed class FirmwareExtractor
             var isLz4 = _lz4.IsLz4(safeName);
             if (isLz4)
             {
-                var decompressed = await _lz4.DecompressIfNeededAsync(rawPath, packageRoot, cancellationToken);
-                preparedPath = decompressed.PreparedPath;
-                preparedName = Path.GetFileName(preparedPath);
-                if (decompressed.Warnings.Count > 0 && preparedPath == rawPath)
+                var estimatedSize = TryEstimateLz4Size(filePath, originalName);
+                var shouldSkipDecompression =
+                    estimatedSize > MaxAutoDecompressBytes ||
+                    safeName.Equals("super.img.lz4", StringComparison.OrdinalIgnoreCase);
+
+                if (shouldSkipDecompression)
                 {
                     compressedContainerCount++;
-                    logger.WriteLine($"LZ4 left compressed for analysis: {packageType}:{safeName}");
+                    logger.WriteLine($"LZ4 left compressed for analysis: {packageType}:{safeName} (estimated size {estimatedSize})");
                     ConsoleProtocol.Log("info", $"LZ4 left compressed for analysis: {packageType}:{safeName}", false, new
                     {
                         packageType,
                         originalName = safeName,
                         preparedPath,
+                        estimatedSize,
                     });
+                }
+                else
+                {
+                    var decompressed = await _lz4.DecompressIfNeededAsync(rawPath, packageRoot, cancellationToken);
+                    preparedPath = decompressed.PreparedPath;
+                    preparedName = Path.GetFileName(preparedPath);
+                    if (decompressed.Warnings.Count > 0 && preparedPath == rawPath)
+                    {
+                        compressedContainerCount++;
+                        logger.WriteLine($"LZ4 left compressed for analysis: {packageType}:{safeName}");
+                        ConsoleProtocol.Log("info", $"LZ4 left compressed for analysis: {packageType}:{safeName}", false, new
+                        {
+                            packageType,
+                            originalName = safeName,
+                            preparedPath,
+                        });
+                    }
                 }
             }
 
@@ -132,6 +185,18 @@ internal sealed class FirmwareExtractor
         }
 
         return package;
+    }
+
+    private long TryEstimateLz4Size(string archivePath, string entryName)
+    {
+        try
+        {
+            return _odin.CalculateLz4SizeFromTar(archivePath, entryName);
+        }
+        catch
+        {
+            return 0;
+        }
     }
 
     private static string SanitizeFileName(string value)

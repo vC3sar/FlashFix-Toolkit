@@ -3,7 +3,6 @@ import { basename, byId, ellipsizePath, formatDateTime, normalizeLevel } from ".
 import { renderDeviceDashboard, renderDevicePanel } from "./js/device-ui.js";
 import { renderFirmwarePanel } from "./js/firmware-ui.js";
 import { LoggerUI } from "./js/logger-ui.js";
-import { initNavigation } from "./js/navigation.js";
 import { renderFlashPlanPanel } from "./js/flash-plan-ui.js";
 import { renderPitPanel, renderPitRaw } from "./js/pit-ui.js";
 import { appState } from "./js/state.js";
@@ -72,15 +71,7 @@ const els = {
   clearLogsBtn: byId("clearLogsBtn"),
   openLogsBtn: byId("openLogsBtn"),
   filterButtons: document.querySelectorAll("[data-log-filter]"),
-  navButtons: document.querySelectorAll("[data-section]"),
-  sections: document.querySelectorAll("[data-section-panel]"),
 };
-
-initNavigation({
-  buttons: els.navButtons,
-  sections: els.sections,
-  defaultSection: state.ui.activeSection,
-});
 
 const logger = new LoggerUI({
   streamEl: els.logStream,

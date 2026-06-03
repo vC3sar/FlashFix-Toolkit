@@ -95,15 +95,39 @@
   }
 
   .ff-workspace {
-    @apply grid gap-4 xl:grid-cols-[16rem_minmax(0,1fr)];
+    @apply grid items-start gap-4 xl:grid-cols-[24rem_minmax(0,1fr)];
   }
 
   .ff-sidebar {
-    @apply rounded-3xl border border-flashfix-border bg-flashfix-panel/90 p-4 shadow-soft backdrop-blur;
+    @apply sticky top-4 flex max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-3xl border border-flashfix-border bg-flashfix-panel/90 p-4 shadow-soft backdrop-blur;
   }
 
   .ff-main {
     @apply min-w-0 space-y-4;
+  }
+
+  .ff-sidebar-stack {
+    @apply flex min-h-0 flex-1 flex-col gap-4;
+  }
+
+  .ff-sidebar-log {
+    @apply flex min-h-0 flex-1 flex-col;
+  }
+
+  .ff-sidebar-bottom {
+    @apply mt-auto space-y-3;
+  }
+
+  .ff-sidebar-panel {
+    @apply rounded-3xl border border-flashfix-border bg-flashfix-panel/90 shadow-soft backdrop-blur;
+  }
+
+  .ff-sidebar-panel-header {
+    @apply border-b border-flashfix-border px-4 py-4;
+  }
+
+  .ff-sidebar-panel-body {
+    @apply px-4 py-4;
   }
 
   .ff-sidebar-title {
@@ -131,11 +155,23 @@
   }
 
   .ff-section-panel {
-    @apply hidden p-5 lg:p-6;
+    @apply p-5 lg:p-6;
   }
 
-  .ff-section-panel.is-active {
-    @apply block;
+  .ff-settings-shell {
+    @apply min-h-[36rem];
+  }
+
+  .ff-settings-scroll {
+    @apply min-h-0 max-h-[36rem] overflow-auto pr-1;
+  }
+
+  .ff-settings-grid {
+    @apply grid gap-4 xl:grid-cols-2;
+  }
+
+  .ff-settings-card {
+    @apply h-full;
   }
 
   .ff-section-header {
@@ -259,7 +295,7 @@
   }
 
   .ff-log-console {
-    @apply flex h-[420px] flex-col overflow-hidden rounded-2xl border border-flashfix-border bg-[#090B10]/95;
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-flashfix-border bg-[#090B10]/95;
   }
 
   .ff-log-toolbar {

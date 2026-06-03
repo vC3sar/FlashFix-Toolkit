@@ -34,26 +34,61 @@
 
       <div class="ff-workspace">
         <aside class="ff-sidebar">
-          <div class="ff-sidebar-title">Navegación</div>
-          <nav class="ff-nav">
-            <button class="ff-nav-btn" data-section="dashboard" aria-current="page">Dashboard</button>
-            <button class="ff-nav-btn" data-section="device">Device</button>
-            <button class="ff-nav-btn" data-section="firmware">Firmware</button>
-            <button class="ff-nav-btn" data-section="pit">PIT</button>
-            <button class="ff-nav-btn" data-section="flash-plan">Flash Plan</button>
-            <button class="ff-nav-btn" data-section="logs">Logs</button>
-            <button class="ff-nav-btn" data-section="settings">Settings</button>
-          </nav>
+          <div class="ff-sidebar-stack">
+            <div class="ff-card">
+              <div class="ff-card-label">Operación actual</div>
+              <div class="mt-3 grid gap-3">
+                <div>
+                  <div id="currentOperationTitle" class="ff-card-value">Sin operación</div>
+                  <div id="currentOperationMessage" class="ff-card-note">No hay tareas en curso.</div>
+                  <div id="currentOperationMeta" class="mt-2 text-sm text-flashfix-muted"></div>
+                </div>
+                <div>
+                  <div class="ff-progress">
+                    <div id="currentOperationProgress" class="ff-progress-bar" style="width: 0%"></div>
+                  </div>
+                  <div id="currentOperationProgressText" class="mt-2 text-sm text-flashfix-muted">0%</div>
+                </div>
+              </div>
+            </div>
 
-          <div class="mt-6 space-y-3">
-            <div class="ff-sidebar-title">Acciones rápidas</div>
-            <button id="openLogsQuickBtn" class="ff-btn ff-btn-ghost w-full">Abrir carpeta de logs</button>
-            <button id="cleanTempBtn" class="ff-btn ff-btn-ghost w-full">Limpiar temporales</button>
+            <div class="ff-log-console ff-sidebar-log">
+              <div class="ff-log-toolbar">
+                <div>
+                  <div class="ff-card-label">Logs</div>
+                  <div class="ff-muted">Consola fija para todos los procesos.</div>
+                </div>
+                <div class="ff-badge ff-badge--muted" id="logCountText">0 visibles</div>
+              </div>
+              <div class="ff-log-toolbar">
+                <div class="ff-log-toolbar-group">
+                  <button class="ff-btn ff-btn-ghost" data-log-filter="all">Todos</button>
+                  <button class="ff-btn ff-btn-ghost" data-log-filter="info">Info</button>
+                  <button class="ff-btn ff-btn-ghost" data-log-filter="success">Success</button>
+                  <button class="ff-btn ff-btn-ghost" data-log-filter="warning">Warning</button>
+                  <button class="ff-btn ff-btn-ghost" data-log-filter="error">Error</button>
+                  <button class="ff-btn ff-btn-ghost" data-log-filter="debug">Debug</button>
+                </div>
+                <input id="logSearchInput" class="ff-input w-full lg:w-56" type="search" placeholder="Buscar logs..." />
+              </div>
+              <div class="ff-log-toolbar border-t border-flashfix-border">
+                <div class="ff-log-toolbar-group">
+                  <button id="copyVisibleLogsBtn" class="ff-btn">Copiar visibles</button>
+                  <button id="copyAllLogsBtn" class="ff-btn">Copiar todo</button>
+                  <button id="exportLogsBtn" class="ff-btn">Exportar log actual</button>
+                </div>
+                <div class="ff-log-toolbar-group">
+                  <button id="clearLogsBtn" class="ff-btn ff-btn-ghost">Limpiar vista</button>
+                  <button id="openLogsBtn" class="ff-btn ff-btn-ghost">Abrir carpeta</button>
+                </div>
+              </div>
+              <div id="logStream" class="ff-log-stream"></div>
+            </div>
           </div>
         </aside>
 
         <main class="ff-main">
-          <section id="section-dashboard" class="ff-section ff-section-panel is-active" data-section-panel="dashboard">
+          <section id="section-dashboard" class="ff-section ff-section-panel">
             <div class="ff-section-header">
               <div>
                 <h2 class="ff-section-title">Dashboard</h2>
@@ -63,7 +98,7 @@
             <div id="dashboardCards" class="ff-grid-6"></div>
           </section>
 
-          <section id="section-device" class="ff-section ff-section-panel" data-section-panel="device">
+          <section id="section-device" class="ff-section ff-section-panel">
             <div class="ff-section-header">
               <div>
                 <h2 class="ff-section-title">Device</h2>
@@ -104,7 +139,7 @@
             </div>
           </section>
 
-          <section id="section-firmware" class="ff-section ff-section-panel" data-section-panel="firmware">
+          <section id="section-firmware" class="ff-section ff-section-panel">
             <div class="ff-section-header">
               <div>
                 <h2 class="ff-section-title">Firmware</h2>
@@ -134,7 +169,7 @@
             </div>
           </section>
 
-          <section id="section-pit" class="ff-section ff-section-panel" data-section-panel="pit">
+          <section id="section-pit" class="ff-section ff-section-panel">
             <div class="ff-section-header">
               <div>
                 <h2 class="ff-section-title">PIT</h2>
@@ -177,7 +212,7 @@
             </div>
           </section>
 
-          <section id="section-flash-plan" class="ff-section ff-section-panel" data-section-panel="flash-plan">
+          <section id="section-flash-plan" class="ff-section ff-section-panel">
             <div class="ff-section-header">
               <div>
                 <h2 class="ff-section-title">Flash Plan</h2>
@@ -228,104 +263,68 @@
             </div>
           </section>
 
-          <section id="section-logs" class="ff-section ff-section-panel" data-section-panel="logs">
+          <section id="section-settings" class="ff-section ff-section-panel ff-settings-shell">
             <div class="ff-section-header">
               <div>
-                <h2 class="ff-section-title">Logs</h2>
-                <p class="ff-section-subtitle">Consola visual con filtros, búsqueda y detalles expandibles.</p>
-              </div>
-            </div>
-
-            <div class="ff-card mb-4">
-              <div class="ff-card-label">Operación actual</div>
-              <div class="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-                <div>
-                  <div id="currentOperationTitle" class="ff-card-value">Sin operación</div>
-                  <div id="currentOperationMessage" class="ff-card-note">No hay tareas en curso.</div>
-                  <div id="currentOperationMeta" class="mt-2 text-sm text-flashfix-muted"></div>
-                </div>
-                <div>
-                  <div class="ff-progress">
-                    <div id="currentOperationProgress" class="ff-progress-bar" style="width: 0%"></div>
-                  </div>
-                  <div id="currentOperationProgressText" class="mt-2 text-sm text-flashfix-muted">0%</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="ff-log-console">
-              <div class="ff-log-toolbar">
-                <div class="ff-log-toolbar-group">
-                  <button class="ff-btn ff-btn-ghost" data-log-filter="all">Todos</button>
-                  <button class="ff-btn ff-btn-ghost" data-log-filter="info">Info</button>
-                  <button class="ff-btn ff-btn-ghost" data-log-filter="success">Success</button>
-                  <button class="ff-btn ff-btn-ghost" data-log-filter="warning">Warning</button>
-                  <button class="ff-btn ff-btn-ghost" data-log-filter="error">Error</button>
-                  <button class="ff-btn ff-btn-ghost" data-log-filter="debug">Debug</button>
-                </div>
-                <div class="ff-log-toolbar-group">
-                  <input id="logSearchInput" class="ff-input w-64 max-w-full" type="search" placeholder="Buscar logs..." />
-                  <span id="logCountText" class="ff-badge ff-badge--muted">0 visibles</span>
-                </div>
-              </div>
-              <div class="ff-log-toolbar border-t border-flashfix-border">
-                <div class="ff-log-toolbar-group">
-                  <button id="copyVisibleLogsBtn" class="ff-btn">Copiar visibles</button>
-                  <button id="copyAllLogsBtn" class="ff-btn">Copiar todo</button>
-                  <button id="exportLogsBtn" class="ff-btn">Exportar log actual</button>
-                </div>
-                <div class="ff-log-toolbar-group">
-                  <button id="clearLogsBtn" class="ff-btn ff-btn-ghost">Limpiar vista</button>
-                  <button id="openLogsBtn" class="ff-btn ff-btn-ghost">Abrir carpeta</button>
-                </div>
-              </div>
-              <div id="logStream" class="ff-log-stream"></div>
-            </div>
-          </section>
-
-          <section id="section-settings" class="ff-section ff-section-panel" data-section-panel="settings">
-            <div class="ff-section-header">
-              <div>
+                <div class="ff-card-label">Settings y rápidas</div>
                 <h2 class="ff-section-title">Settings</h2>
                 <p class="ff-section-subtitle">Rutas, mantenimiento y notas legales del proyecto.</p>
               </div>
+              <div class="ff-toolbar">
+                <button id="openLogsQuickBtn" class="ff-btn ff-btn-ghost">Abrir carpeta de logs</button>
+                <button id="cleanTempBtn" class="ff-btn ff-btn-ghost">Limpiar temporales</button>
+                <button id="openLicensesBtn" class="ff-btn">Ver licencias</button>
+              </div>
             </div>
 
-            <div class="ff-grid-2">
-              <div class="ff-card space-y-3">
-                <div class="ff-card-label">Core</div>
-                <div class="ff-muted">Ruta del core</div>
-                <details class="ff-details">
-                  <summary id="backendPathText">engines/FlashFix.Core.exe</summary>
-                  <pre class="ff-pre mt-3" id="backendPathFullBox">Sin ruta.</pre>
-                </details>
-                <div class="ff-muted">Ruta de logs</div>
-                <details class="ff-details">
-                  <summary id="logsPathText">logs/</summary>
-                  <pre class="ff-pre mt-3" id="logsPathFullBox">Sin ruta.</pre>
-                </details>
-                <div class="ff-muted">Ruta temporal</div>
-                <details class="ff-details">
-                  <summary id="tempPathText">temp/</summary>
-                  <pre class="ff-pre mt-3" id="tempPathFullBox">Sin ruta.</pre>
-                </details>
-                <div class="ff-muted">Licencias</div>
-                <details class="ff-details">
-                  <summary id="licensesPathText">licenses/</summary>
-                  <pre class="ff-pre mt-3" id="licensesPathFullBox">Sin ruta.</pre>
-                </details>
-              </div>
-
-              <div class="ff-card space-y-4">
-                <div class="ff-card-label">Mantenimiento</div>
-                <div class="ff-toolbar">
-                  <button id="openLicensesBtn" class="ff-btn">Ver licencias</button>
-                  <button id="cleanTempSecondaryBtn" class="ff-btn ff-btn-ghost">Limpiar temporales</button>
+            <div class="ff-settings-scroll">
+              <div class="ff-settings-grid">
+                <div class="ff-card ff-settings-card">
+                  <div class="ff-card-label">Mantenimiento rápido</div>
+                  <div class="mt-4 space-y-3">
+                    <div class="ff-toolbar">
+                      <button id="cleanTempSecondaryBtn" class="ff-btn ff-btn-ghost">Limpiar temporales</button>
+                      <div class="ff-muted">Limpia archivos temporales generados por análisis y planes.</div>
+                    </div>
+                    <div id="disclaimerText" class="ff-panel-box text-sm leading-6 text-flashfix-muted">
+                      FlashFix Toolkit is an independent firmware utility.
+                      It is not affiliated with or endorsed by Samsung.
+                    </div>
+                  </div>
                 </div>
-                <div class="ff-card-label">Disclaimer</div>
-                <div id="disclaimerText" class="ff-panel-box text-sm leading-6 text-flashfix-muted">
-                  FlashFix Toolkit is an independent firmware utility.
-                  It is not affiliated with or endorsed by Samsung.
+
+                <div class="ff-card ff-settings-card">
+                  <div class="ff-card-label">Rutas del proyecto</div>
+                  <div class="mt-4 space-y-4">
+                    <div class="space-y-2">
+                      <div class="ff-muted">Ruta del core</div>
+                      <details class="ff-details">
+                        <summary id="backendPathText">engines/FlashFix.Core.exe</summary>
+                        <pre class="ff-pre mt-3" id="backendPathFullBox">Sin ruta.</pre>
+                      </details>
+                    </div>
+                    <div class="space-y-2">
+                      <div class="ff-muted">Ruta de logs</div>
+                      <details class="ff-details">
+                        <summary id="logsPathText">logs/</summary>
+                        <pre class="ff-pre mt-3" id="logsPathFullBox">Sin ruta.</pre>
+                      </details>
+                    </div>
+                    <div class="space-y-2">
+                      <div class="ff-muted">Ruta temporal</div>
+                      <details class="ff-details">
+                        <summary id="tempPathText">temp/</summary>
+                        <pre class="ff-pre mt-3" id="tempPathFullBox">Sin ruta.</pre>
+                      </details>
+                    </div>
+                    <div class="space-y-2">
+                      <div class="ff-muted">Licencias</div>
+                      <details class="ff-details">
+                        <summary id="licensesPathText">licenses/</summary>
+                        <pre class="ff-pre mt-3" id="licensesPathFullBox">Sin ruta.</pre>
+                      </details>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
