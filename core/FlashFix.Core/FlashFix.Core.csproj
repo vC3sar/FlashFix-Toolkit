@@ -13,5 +13,6 @@
   <ItemGroup>
     <PackageReference Include="SharpOdinClient" Version="1.0.2" />
     <PackageReference Include="K4os.Compression.LZ4.Legacy" Version="1.2.16" />
+    <PackageReference Include="System.Management" Version="10.0.8" />
   </ItemGroup>
 </Project>
