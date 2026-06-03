@@ -1,2 +1,11 @@
 /node_modules
+/logs/*
+!/logs/.gitkeep
+/temp/*
+!/temp/.gitkeep
+/engines/*
+!/engines/.gitkeep
+/core/**/bin/
+/core/**/obj/
+/core/**/.vs/
 /package-lock.json

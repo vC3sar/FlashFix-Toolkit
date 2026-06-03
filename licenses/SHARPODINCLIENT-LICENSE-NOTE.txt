@@ -1,0 +1,4 @@
+SharpOdinClient is consumed as a third-party dependency by FlashFix Toolkit.
+
+The NuGet package metadata I inspected does not declare a clear SPDX license identifier.
+Review the upstream package source and package notice before redistribution.

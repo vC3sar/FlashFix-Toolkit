@@ -1,16 +1,17 @@
 let electron;
+
 try {
   electron = require("electron");
-} catch (error) {
+} catch {
   console.error(
-    "FlashFix Toolkit requiere Electron. Ejecuta la app con `npm start` o `npx electron .`, no con `node main.js`.",
+    "FlashFix Toolkit requiere Electron. Ejecuta la app con `npm start` o `npx electron .`.",
   );
   process.exit(1);
 }
 
-if (!electron || !electron.app || !electron.BrowserWindow) {
+if (!electron?.app || !electron?.BrowserWindow) {
   console.error(
-    "FlashFix Toolkit requiere el runtime de Electron. Ejecuta la app con `npm start` o `npx electron .`, no con `node main.js`.",
+    "FlashFix Toolkit requiere el runtime de Electron. Ejecuta la app con `npm start` o `npx electron .`.",
   );
   process.exit(1);
 }
@@ -19,407 +20,123 @@ const { app, BrowserWindow, dialog, ipcMain, shell } = electron;
 const fs = require("fs");
 const fsp = fs.promises;
 const path = require("path");
+const readline = require("readline");
 const { spawn } = require("child_process");
 
 const ALLOWED_COMMANDS = new Set([
   "detect",
-  "print-pit",
-  "flash",
-  "close-pc-screen",
+  "device-info",
+  "read-pit",
+  "analyze-firmware",
+  "build-plan",
+  "flash-plan",
+  "clean-temp",
 ]);
-const ALLOWED_PARTITIONS = [
-  "BOOT",
-  "RECOVERY",
-  "SYSTEM",
-  "VENDOR",
-  "PRODUCT",
-  "CACHE",
-  "ODM",
-  "MODEM",
-  "HIDDEN",
-];
-const SAMSUNG_PACKAGE_SLOTS = ["BL", "AP", "CP", "CSC", "HOME_CSC"];
 
 let mainWindow = null;
 let activeOperation = null;
 let logsDir = null;
+let tempDir = null;
 
-function formatDateForFile(date = new Date()) {
+function nowStamp(date = new Date()) {
   const pad = (value) => String(value).padStart(2, "0");
-  return (
-    [date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())].join(
-      "-",
-    ) +
-    "_" +
-    [pad(date.getHours()), pad(date.getMinutes()), pad(date.getSeconds())].join(
-      "-",
-    )
-  );
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+  ].join("-") + `_${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
 }
 
-function formatDateTime(date = new Date()) {
+function isoStamp(date = new Date()) {
   return date.toISOString();
 }
 
 function safeFileStem(value) {
-  return String(value)
-    .replace(/[^a-z0-9._-]+/gi, "_")
-    .replace(/^_+|_+$/g, "");
+  return String(value).replace(/[^a-z0-9._-]+/gi, "_").replace(/^_+|_+$/g, "");
 }
 
-function getAppRootCandidates() {
-  const candidates = [
-    app.getAppPath(),
-    process.resourcesPath,
-    app.getPath("userData"),
-  ].filter(Boolean);
-
-  return [...new Set(candidates)];
+function unique(values) {
+  return [...new Set(values.filter(Boolean))];
 }
 
-function getHeimdallCandidates() {
-  const roots = getAppRootCandidates();
-  const candidates = [];
-
-  for (const root of roots) {
-    candidates.push(path.join(root, "bin", "heimdall.exe"));
-    candidates.push(path.join(root, "heimdall.exe"));
-  }
-
-  return [...new Set(candidates)];
+function workspaceRoot() {
+  return __dirname;
 }
 
-async function resolveHeimdallPath() {
-  for (const candidate of getHeimdallCandidates()) {
-    try {
-      await fsp.access(candidate, fs.constants.F_OK);
-      return candidate;
-    } catch {
-      // Continue scanning common locations.
-    }
-  }
-  return null;
+function getLogsDirCandidate() {
+  return path.join(workspaceRoot(), "logs");
+}
+
+function getTempDirCandidate() {
+  return path.join(workspaceRoot(), "temp");
+}
+
+function getCoreCandidates() {
+  const root = workspaceRoot();
+  return unique([
+    path.join(root, "engines", "FlashFix.Core.exe"),
+    path.join(root, "core", "FlashFix.Core", "bin", "Release", "net8.0-windows", "FlashFix.Core.exe"),
+    path.join(root, "core", "FlashFix.Core", "bin", "Debug", "net8.0-windows", "FlashFix.Core.exe"),
+    path.join(root, "core", "FlashFix.Core", "bin", "Release", "net8.0-windows", "publish", "FlashFix.Core.exe"),
+    path.join(root, "core", "FlashFix.Core", "bin", "Debug", "net8.0-windows", "publish", "FlashFix.Core.exe"),
+    path.join(root, "core", "FlashFix.Core", "bin", "Release", "net48", "FlashFix.Core.exe"),
+    path.join(root, "core", "FlashFix.Core", "bin", "Debug", "net48", "FlashFix.Core.exe"),
+  ]);
+}
+
+async function ensureDir(dirPath) {
+  await fsp.mkdir(dirPath, { recursive: true });
+  return dirPath;
 }
 
 async function ensureLogsDir() {
-  if (logsDir) {
-    return logsDir;
+  if (!logsDir) {
+    logsDir = await ensureDir(getLogsDirCandidate());
   }
-
-  const candidates = [
-    path.join(app.getAppPath(), "logs"),
-    path.join(app.getPath("userData"), "logs"),
-  ];
-
-  for (const candidate of candidates) {
-    try {
-      await fsp.mkdir(candidate, { recursive: true });
-      logsDir = candidate;
-      return logsDir;
-    } catch {
-      // Try next location.
-    }
-  }
-
-  throw new Error("No se pudo crear una carpeta de logs escribible.");
+  return logsDir;
 }
 
-function writeLogLine(logPath, line) {
+async function ensureTempDir() {
+  if (!tempDir) {
+    tempDir = await ensureDir(getTempDirCandidate());
+  }
+  return tempDir;
+}
+
+function writeOperationLog(logPath, line) {
   fs.appendFileSync(logPath, `${line}\n`, "utf8");
 }
 
-function normalizeCommandLine(command, args) {
-  const joinedArgs = args
-    .map((arg) => {
-      const text = String(arg);
-      return /\s/.test(text) ? `"${text}"` : text;
-    })
-    .join(" ");
-  return joinedArgs
-    ? `heimdall ${command} ${joinedArgs}`
-    : `heimdall ${command}`;
-}
-
-function classifyHeimdallOutput(command, stdout, stderr, exitCode) {
-  const output = `${stdout}\n${stderr}`.toLowerCase();
-
-  if (/permission denied|access denied|driver|usb|libusb/i.test(output)) {
-    return {
-      deviceState: "driver_issue",
-      message: "Posible problema de driver, permisos o acceso USB.",
-    };
-  }
-
-  if (
-    /no device detected|failed to detect|could not detect|device not detected/i.test(
-      output,
-    )
-  ) {
-    return {
-      deviceState: "not_detected",
-      message: "Heimdall no detectó un dispositivo en Download Mode.",
-    };
-  }
-
-  if (/device detected|session begun|connected/i.test(output)) {
-    return {
-      deviceState: "detected",
-      message:
-        command === "print-pit"
-          ? "Dispositivo detectado y PIT leído correctamente."
-          : "Dispositivo detectado correctamente.",
-    };
-  }
-
-  if (exitCode === 0) {
-    return {
-      deviceState: command === "print-pit" ? "detected" : "unknown",
-      message:
-        command === "print-pit"
-          ? "PIT leído correctamente."
-          : "Operación completada correctamente.",
-    };
-  }
-
-  return {
-    deviceState: "error",
-    message: "Heimdall devolvió un error no clasificado.",
-  };
-}
-
-function sendOperationEvent(channel, payload) {
+function send(channel, payload) {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(channel, payload);
   }
 }
 
-function collectStreamLines(stream, level, appendLine, forwardLine) {
-  let buffer = "";
-
-  stream.on("data", (chunk) => {
-    buffer += chunk.toString("utf8");
-    const parts = buffer.split(/\r?\n/);
-    buffer = parts.pop() ?? "";
-
-    for (const line of parts) {
-      if (line.length === 0) {
-        continue;
-      }
-      appendLine(level, line);
-      forwardLine(level, line);
-    }
-  });
-
-  stream.on("close", () => {
-    const finalLine = buffer.trim();
-    if (finalLine.length > 0) {
-      appendLine(level, finalLine);
-      forwardLine(level, finalLine);
-    }
-  });
-}
-
-async function runHeimdallOperation(command, args, options = {}) {
-  if (!ALLOWED_COMMANDS.has(command)) {
-    throw new Error(`Comando no permitido: ${command}`);
-  }
-
-  if (activeOperation) {
-    throw new Error("Ya hay una operación de Heimdall en curso.");
-  }
-
-  const heimdallPath = await resolveHeimdallPath();
-  if (!heimdallPath) {
-    throw new Error("Heimdall no encontrado. Coloca heimdall.exe en /bin.");
-  }
-
-  await ensureLogsDir();
-
-  const operationId = `${command}-${Date.now()}`;
-  const logFileName = `${formatDateForFile()}_${safeFileStem(command)}_${operationId}.log`;
-  const logPath = path.join(logsDir, logFileName);
-  const startedAt = new Date();
-  const commandLine = normalizeCommandLine(command, args);
-
-  activeOperation = {
-    id: operationId,
-    command,
-    logPath,
-  };
-
-  writeLogLine(logPath, `Timestamp: ${formatDateTime(startedAt)}`);
-  writeLogLine(logPath, `Command: ${commandLine}`);
-  writeLogLine(logPath, "--- stdout / stderr ---");
-  sendOperationEvent("heimdall:operation-start", {
-    operationId,
-    command,
-    logPath,
-    commandLine,
-  });
-
-  const stdoutLines = [];
-  const stderrLines = [];
-
-  const child = spawn(heimdallPath, [command, ...args], {
-    windowsHide: true,
-    shell: false,
-  });
-
-  const forwardLine = (level, line) => {
-    const payload = {
-      operationId,
-      level,
-      line,
-      timestamp: formatDateTime(),
-    };
-    sendOperationEvent("heimdall:log", payload);
-  };
-
-  const appendLine = (level, line) => {
-    const stamped = `[${formatDateTime()}] [${level}] ${line}`;
-    writeLogLine(logPath, stamped);
-    if (level === "stdout") {
-      stdoutLines.push(line);
-    } else {
-      stderrLines.push(line);
-    }
-  };
-
-  collectStreamLines(child.stdout, "stdout", appendLine, forwardLine);
-  collectStreamLines(child.stderr, "stderr", appendLine, forwardLine);
-
+function parseJsonLine(line) {
   try {
-    const exitInfo = await new Promise((resolve, reject) => {
-      child.once("error", reject);
-      child.once("close", (code, signal) => {
-        resolve({ code, signal });
-      });
-    });
-
-    const stdout = stdoutLines.join("\n").trim();
-    const stderr = stderrLines.join("\n").trim();
-    const classification = classifyHeimdallOutput(
-      command,
-      stdout,
-      stderr,
-      exitInfo.code,
-    );
-
-    writeLogLine(logPath, `Exit code: ${exitInfo.code}`);
-    if (exitInfo.signal) {
-      writeLogLine(logPath, `Signal: ${exitInfo.signal}`);
-    }
-    writeLogLine(logPath, `Result: ${classification.message}`);
-
-    if (command === "print-pit") {
-      const pitSnapshotPath = path.join(
-        logsDir,
-        `${formatDateForFile()}_pit_${operationId}.txt`,
-      );
-      const pitContent = [
-        `Timestamp: ${formatDateTime(startedAt)}`,
-        `Command: ${commandLine}`,
-        "",
-        "--- stdout ---",
-        stdout || "[empty]",
-        "",
-        "--- stderr ---",
-        stderr || "[empty]",
-        "",
-        `Exit code: ${exitInfo.code}`,
-      ].join("\n");
-      fs.writeFileSync(pitSnapshotPath, pitContent, "utf8");
-    }
-
-    const result = {
-      success: exitInfo.code === 0,
-      command,
-      commandLine,
-      exitCode: exitInfo.code,
-      signal: exitInfo.signal ?? null,
-      stdout,
-      stderr,
-      logPath,
-      deviceState: classification.deviceState,
-      message: classification.message,
-    };
-
-    sendOperationEvent("heimdall:operation-end", {
-      operationId,
-      command,
-      logPath,
-      result,
-    });
-
-    return result;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    writeLogLine(logPath, `Error: ${message}`);
-    sendOperationEvent("heimdall:operation-end", {
-      operationId,
-      command,
-      logPath,
-      result: {
-        success: false,
-        command,
-        commandLine,
-        exitCode: -1,
-        signal: null,
-        stdout: "",
-        stderr: message,
-        logPath,
-        deviceState: "error",
-        message,
-      },
-    });
-    throw error;
-  } finally {
-    activeOperation = null;
+    return JSON.parse(line);
+  } catch {
+    return null;
   }
 }
 
-async function readFileInfo(filePath, options = {}) {
-  if (typeof filePath !== "string" || filePath.trim().length === 0) {
-    throw new Error("Ruta de archivo inválida.");
+async function resolveCorePath() {
+  for (const candidate of getCoreCandidates()) {
+    try {
+      await fsp.access(candidate, fs.constants.F_OK);
+      return candidate;
+    } catch {
+      // continue
+    }
   }
-
-  const normalizedPath = path.resolve(filePath);
-  const stat = await fsp.stat(normalizedPath);
-  if (!stat.isFile()) {
-    throw new Error("La ruta seleccionada no apunta a un archivo.");
-  }
-  if (stat.size <= 0) {
-    throw new Error("El archivo está vacío.");
-  }
-
-  const basename = path.basename(normalizedPath);
-  const lower = basename.toLowerCase();
-  const acceptedExtensions = options.acceptedExtensions ?? [];
-  const isAccepted =
-    acceptedExtensions.length === 0 ||
-    acceptedExtensions.some((ext) => lower.endsWith(ext));
-
-  if (!isAccepted) {
-    throw new Error(`Extensión no permitida para ${basename}.`);
-  }
-
-  return {
-    path: normalizedPath,
-    name: basename,
-    size: stat.size,
-  };
+  return null;
 }
 
-async function selectFileDialog({ title, extensions }) {
+async function showDirectoryPicker(options = {}) {
   const result = await dialog.showOpenDialog(mainWindow, {
-    title,
-    properties: ["openFile"],
-    filters: [
-      {
-        name: title,
-        extensions,
-      },
-    ],
+    title: options.title || "Seleccionar carpeta",
+    properties: ["openDirectory"],
   });
 
   if (result.canceled || result.filePaths.length === 0) {
@@ -429,67 +146,169 @@ async function selectFileDialog({ title, extensions }) {
   return result.filePaths[0];
 }
 
-async function validateSamsungPackage(filePath) {
-  const info = await readFileInfo(filePath, {
-    acceptedExtensions: [".tar", ".md5", ".tar.md5", ".img"],
+async function showFilePicker(options = {}) {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: options.title || "Seleccionar archivo",
+    properties: ["openFile"],
+    filters: options.filters || [],
   });
-  return info;
-}
 
-async function validateExpertImage(filePath) {
-  const info = await readFileInfo(filePath, {
-    acceptedExtensions: [".img"],
-  });
-  return info;
-}
-
-function buildFlashArgs(entries) {
-  const args = ["flash"];
-  for (const entry of entries) {
-    args.push(`--${entry.partition}`);
-    args.push(entry.filePath);
-  }
-  return args;
-}
-
-async function flashExpertEntries(entries) {
-  if (!Array.isArray(entries) || entries.length === 0) {
-    throw new Error("No hay particiones para flashear.");
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
   }
 
-  const normalizedEntries = [];
-  const seenPartitions = new Set();
+  return result.filePaths[0];
+}
 
-  for (const entry of entries) {
-    const partition = String(entry.partition || "")
-      .toUpperCase()
-      .trim();
-    if (!ALLOWED_PARTITIONS.includes(partition)) {
-      throw new Error(`Partición no permitida: ${partition || "[vacía]"}`);
-    }
-    if (seenPartitions.has(partition)) {
-      throw new Error(`La partición ${partition} está duplicada.`);
-    }
-    seenPartitions.add(partition);
+async function runCoreCommand(command, args = []) {
+  if (!ALLOWED_COMMANDS.has(command)) {
+    throw new Error(`Comando no permitido: ${command}`);
+  }
 
-    const fileInfo = await validateExpertImage(entry.filePath);
-    normalizedEntries.push({
-      partition,
-      filePath: fileInfo.path,
-      fileName: fileInfo.name,
-      size: fileInfo.size,
+  if (activeOperation) {
+    throw new Error("Ya hay una operación en curso.");
+  }
+
+  const corePath = await resolveCorePath();
+  if (!corePath) {
+    throw new Error("FlashFix.Core.exe no encontrado. Coloca el binario en /engines.");
+  }
+
+  await ensureLogsDir();
+  const operationId = `${safeFileStem(command)}-${Date.now()}`;
+  const logPath = path.join(logsDir, `${nowStamp()}_${safeFileStem(command)}_${operationId}.log`);
+  const commandLine = [path.basename(corePath), command, ...args.map(String)].join(" ");
+
+  activeOperation = { operationId, command, logPath };
+
+  writeOperationLog(logPath, `Timestamp: ${isoStamp()}`);
+  writeOperationLog(logPath, `Command: ${commandLine}`);
+
+  send("core:operation-start", {
+    operationId,
+    command,
+    commandLine,
+    logPath,
+    corePath,
+  });
+
+  const env = {
+    ...process.env,
+    FLASHFIX_LOGS_DIR: logsDir,
+    FLASHFIX_TEMP_DIR: await ensureTempDir(),
+    FLASHFIX_WORKSPACE: workspaceRoot(),
+  };
+
+  const child = spawn(corePath, [command, ...args], {
+    cwd: path.dirname(corePath),
+    windowsHide: true,
+    shell: false,
+    env,
+  });
+
+  let parsedResult = null;
+  const stdoutReader = readline.createInterface({ input: child.stdout, crlfDelay: Infinity });
+  const stderrReader = readline.createInterface({ input: child.stderr, crlfDelay: Infinity });
+
+  stdoutReader.on("line", (line) => {
+    writeOperationLog(logPath, `[stdout] ${line}`);
+    const parsed = parseJsonLine(line);
+    if (parsed) {
+      if (parsed.type === "progress") {
+        send("core:progress", { operationId, ...parsed });
+      } else if (parsed.type === "log") {
+        send("core:log", { operationId, ...parsed });
+      } else if (parsed.type === "result" || parsed.type === "error") {
+        parsedResult = parsed;
+        send(parsed.type === "result" ? "core:result" : "core:error", {
+          operationId,
+          ...parsed,
+        });
+      } else {
+        send("core:raw", { operationId, line, parsed });
+      }
+    } else {
+      send("core:raw", { operationId, line });
+    }
+  });
+
+  stderrReader.on("line", (line) => {
+    writeOperationLog(logPath, `[stderr] ${line}`);
+    send("core:stderr", { operationId, line });
+  });
+
+  try {
+    const exitInfo = await new Promise((resolve, reject) => {
+      child.once("error", reject);
+      child.once("close", (code, signal) => resolve({ code, signal }));
     });
-  }
 
-  const args = buildFlashArgs(normalizedEntries);
-  return runHeimdallOperation("flash", args);
+    stdoutReader.close();
+    stderrReader.close();
+
+    if (!parsedResult) {
+      parsedResult = exitInfo.code === 0
+        ? {
+            ok: true,
+            type: "result",
+            command,
+            message: "Comando completado.",
+            data: {},
+          }
+        : {
+            ok: false,
+            type: "error",
+            command,
+            message: "El proceso terminó con error.",
+            code: "EXIT_NONZERO",
+          };
+    }
+
+    const finalResult = {
+      ...parsedResult,
+      operationId,
+      logPath,
+      exitCode: exitInfo.code,
+      signal: exitInfo.signal ?? null,
+      corePath,
+    };
+
+    writeOperationLog(logPath, `Exit code: ${exitInfo.code}`);
+    if (exitInfo.signal) {
+      writeOperationLog(logPath, `Signal: ${exitInfo.signal}`);
+    }
+    writeOperationLog(logPath, `Result: ${JSON.stringify(finalResult)}`);
+
+    send("core:operation-end", finalResult);
+    return finalResult;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const finalResult = {
+      ok: false,
+      type: "error",
+      command,
+      message,
+      code: "SPAWN_ERROR",
+      operationId,
+      logPath,
+      corePath,
+      exitCode: -1,
+      signal: null,
+    };
+
+    writeOperationLog(logPath, `Error: ${message}`);
+    send("core:operation-end", finalResult);
+    throw new Error(message);
+  } finally {
+    activeOperation = null;
+  }
 }
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1320,
-    height: 900,
-    minWidth: 1100,
+    width: 1380,
+    height: 920,
+    minWidth: 1180,
     minHeight: 760,
     backgroundColor: "#111317",
     webPreferences: {
@@ -507,6 +326,7 @@ app.setName("FlashFix Toolkit");
 
 app.whenReady().then(async () => {
   await ensureLogsDir();
+  await ensureTempDir();
   createWindow();
 
   app.on("activate", () => {
@@ -523,15 +343,15 @@ app.on("window-all-closed", () => {
 });
 
 ipcMain.handle("app:getStatus", async () => {
-  const heimdallPath = await resolveHeimdallPath();
+  const corePath = await resolveCorePath();
   return {
     appName: "FlashFix Toolkit",
     shortName: "FlashFix",
     longName: "Uncomplicated FlashFix Toolkit",
-    heimdallFound: Boolean(heimdallPath),
-    heimdallPath,
+    coreFound: Boolean(corePath),
+    corePath,
     logsDir: await ensureLogsDir(),
-    allowedPartitions: ALLOWED_PARTITIONS,
+    tempDir: await ensureTempDir(),
     allowedCommands: [...ALLOWED_COMMANDS],
   };
 });
@@ -542,63 +362,34 @@ ipcMain.handle("app:openLogsFolder", async () => {
   return { ok: true, folder };
 });
 
-ipcMain.handle("file:selectSamsungPackage", async (_event, slot) => {
-  if (!SAMSUNG_PACKAGE_SLOTS.includes(slot)) {
-    throw new Error(`Slot no permitido: ${slot}`);
-  }
+ipcMain.handle("app:selectFirmwareFolder", async () => {
+  return showDirectoryPicker({ title: "Seleccionar carpeta de firmware" });
+});
 
-  const filePath = await selectFileDialog({
-    title: `Seleccionar ${slot}`,
-    extensions: ["tar", "md5", "img"],
+ipcMain.handle("app:selectJsonFile", async (_event, title) => {
+  return showFilePicker({
+    title: title || "Seleccionar archivo JSON",
+    filters: [{ name: "JSON", extensions: ["json"] }],
   });
-
-  if (!filePath) {
-    return null;
-  }
-
-  const info = await validateSamsungPackage(filePath);
-  return {
-    slot,
-    ...info,
-  };
 });
 
-ipcMain.handle("file:selectExpertImage", async (_event, partition) => {
-  const normalizedPartition = String(partition || "")
-    .toUpperCase()
-    .trim();
-  if (!ALLOWED_PARTITIONS.includes(normalizedPartition)) {
-    throw new Error(`Partición no permitida: ${partition}`);
-  }
-
-  const filePath = await selectFileDialog({
-    title: `Seleccionar imagen para ${normalizedPartition}`,
-    extensions: ["img"],
+ipcMain.handle("app:selectAnyFile", async (_event, title) => {
+  return showFilePicker({
+    title: title || "Seleccionar archivo",
+    filters: [],
   });
-
-  if (!filePath) {
-    return null;
-  }
-
-  const info = await validateExpertImage(filePath);
-  return {
-    partition: normalizedPartition,
-    ...info,
-  };
 });
 
-ipcMain.handle("heimdall:detect", async () => {
-  return runHeimdallOperation("detect", []);
+ipcMain.handle("core:detect", async () => runCoreCommand("detect"));
+ipcMain.handle("core:deviceInfo", async () => runCoreCommand("device-info"));
+ipcMain.handle("core:readPit", async () => runCoreCommand("read-pit"));
+ipcMain.handle("core:analyzeFirmware", async (_event, firmwarePath) => {
+  return runCoreCommand("analyze-firmware", [firmwarePath]);
 });
-
-ipcMain.handle("heimdall:printPit", async () => {
-  return runHeimdallOperation("print-pit", []);
+ipcMain.handle("core:buildPlan", async (_event, firmwarePath, pitJsonPath) => {
+  return runCoreCommand("build-plan", [firmwarePath, pitJsonPath]);
 });
-
-ipcMain.handle("heimdall:flashExpert", async (_event, entries) => {
-  return flashExpertEntries(entries);
+ipcMain.handle("core:flashPlan", async (_event, planJsonPath) => {
+  return runCoreCommand("flash-plan", [planJsonPath]);
 });
-
-ipcMain.handle("heimdall:reboot", async () => {
-  return runHeimdallOperation("close-pc-screen", []);
-});
+ipcMain.handle("core:cleanTemp", async () => runCoreCommand("clean-temp"));

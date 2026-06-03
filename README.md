@@ -2,108 +2,143 @@
 
 **Uncomplicated FlashFix Toolkit**
 
-FlashFix Toolkit es una utilidad independiente de escritorio para recuperación y reinstalación controlada de firmware Samsung Galaxy usando Heimdall como backend externo.
+FlashFix Toolkit is an independent firmware utility for Samsung Galaxy recovery and controlled firmware reinstalls.
 
-## Aviso de uso
+It is not affiliated with or endorsed by Samsung.
+It does not bypass FRP, KG, Knox Guard, MDM, carrier locks, accounts, or device security.
 
-- Usa solo firmware oficial y adecuado para el modelo exacto del dispositivo.
-- Flashear firmware puede borrar datos.
-- Esta aplicación no incluye funciones de bypass de FRP, KG, Knox Guard, MDM, bloqueo de operador ni evasión de seguridad.
-- FlashFix Toolkit es una utilidad independiente. No está afiliada ni respaldada por Samsung.
+## Architecture
 
-## Estado de la primera versión
+- Frontend: Electron + HTML/CSS/JavaScript
+- Backend/Core: C# .NET
+- Samsung engine: `SharpOdinClient`
 
-Esta primera versión está pensada para ser funcional, no para automatizar el flujo de Odin.
+Electron does not talk to USB directly. It only spawns `FlashFix.Core.exe` and reads JSON lines from stdout.
 
-Incluye:
+## Current scope
 
-- Detección de Heimdall.
-- `heimdall detect`.
-- `heimdall print-pit`.
-- Logs persistentes por operación.
-- Validación básica de archivos Samsung.
-- Flasheo experto controlado por partición con archivos `.img`.
-- Reinicio/cierre compatible con Heimdall cuando exista soporte.
+This first functional version focuses on:
 
-No incluye todavía:
+- device detection
+- device info
+- PIT reading
+- Samsung firmware package analysis
+- flash plan generation
+- safe flash plan execution
+- temporary file cleanup
+- persistent logs
 
-- Parsing automático de contenedores Samsung `.tar.md5`.
-- Flasheo automático de BL/AP/CP/CSC/HOME_CSC como Odin.
-- Reglas de mapeo firmware-a-partición para paquetes Samsung.
+It does not implement any bypass feature.
 
-## Requisitos
+## Backend commands
 
-- Windows.
-- Node.js.
-- Electron instalado por `npm install`.
-- `heimdall.exe` colocado en `bin/heimdall.exe`.
+`FlashFix.Core.exe` supports these commands:
 
-## Instalación
+```txt
+detect
+device-info
+read-pit
+analyze-firmware "C:\ruta\firmware"
+build-plan "C:\ruta\firmware" "C:\ruta\pit.json"
+flash-plan "C:\ruta\plan.json"
+clean-temp
+```
+
+## Output contract
+
+The backend writes one JSON object per line to stdout.
+
+Examples:
+
+```json
+{ "ok": true, "type": "result", "command": "detect", "message": "Device detected in Download Mode", "data": {} }
+```
+
+```json
+{ "type": "progress", "step": "analyzing_firmware", "message": "Extracting AP package...", "percent": 35 }
+```
+
+```json
+{ "ok": false, "type": "error", "command": "read-pit", "message": "No Samsung device detected in Download Mode", "code": "NO_DEVICE" }
+```
+
+## Requirements
+
+- Windows
+- Node.js
+- Electron dependencies installed with `npm install`
+- .NET SDK 8.0 or newer to build `FlashFix.Core`
+- Samsung USB drivers if your system needs them for Download Mode
+
+## Install
 
 ```bash
 npm install
 ```
 
-## Ejecución en desarrollo
+## Run the frontend
 
 ```bash
-npm run dev
+npm start
 ```
 
-## Ubicación de Heimdall
+## Build `FlashFix.Core`
 
-Coloca el ejecutable en:
+Build the backend from the project in `core/FlashFix.Core/`.
+
+Example:
+
+```bash
+dotnet publish core/FlashFix.Core/FlashFix.Core.csproj -c Release -r win-x64 --self-contained false
+```
+
+Copy the resulting `FlashFix.Core.exe` into:
 
 ```txt
-bin/heimdall.exe
+engines/FlashFix.Core.exe
 ```
 
-La app también intenta resolver ubicaciones comunes adicionales, pero esa es la ruta esperada para la versión de desarrollo.
+The Electron app looks for the backend in `engines/` first.
 
-## Flujos principales
+## Firmware analysis and flash plan
 
-### Detectar dispositivo
+The backend analyzes Samsung firmware packages from a folder:
 
-Ejecuta `heimdall detect` y muestra la salida en tiempo real.
+- `BL_*.tar.md5`
+- `AP_*.tar.md5`
+- `CP_*.tar.md5`
+- `CSC_*.tar.md5`
+- `HOME_CSC_*.tar.md5`
 
-### Leer PIT
+It extracts supported images into `temp/firmware/` and builds a flash plan by mapping images to allowed partitions.
 
-Ejecuta `heimdall print-pit` y guarda la salida en un archivo dentro de `logs/`.
-
-### Flasheo experto
-
-El flasheo inicial acepta solo particiones permitidas y archivos `.img`.
-
-Particiones permitidas:
-
-- BOOT
-- RECOVERY
-- SYSTEM
-- VENDOR
-- PRODUCT
-- CACHE
-- ODM
-- MODEM
-- HIDDEN
+The plan excludes unsafe or unmapped items by default.
 
 ## Logs
 
-La aplicación crea `logs/` automáticamente si no existe.
+The app creates `logs/` automatically.
 
-Cada operación guarda:
+It stores:
 
-- Fecha y hora.
-- Comando ejecutado.
-- `stdout`.
-- `stderr`.
-- Código de salida.
+- operation logs
+- PIT dumps
+- firmware analysis JSON
+- flash plans
+- flash results
 
-La vista de logs en la interfaz también se actualiza en tiempo real.
+## SharpOdinClient note
 
-## Licencia de Heimdall
+`SharpOdinClient` is used as the Samsung backend.
 
-FlashFix Toolkit uses Heimdall as an external flashing backend.  
-Heimdall is licensed under the MIT License.  
-Copyright (c) 2010-2017 Benjamin Dobell, Glass Echidna.
+The NuGet package I inspected does not surface a clear SPDX license in the package metadata, so verify the upstream source and package notice before redistribution.
 
-Consulta el archivo `licenses/HEIMDALL-MIT-LICENSE.txt`.
+Package reference:
+
+- `SharpOdinClient` 1.0.2 by Alephgsm
+
+## Limitations
+
+- No Odin-style automatic BL/AP/CP/CSC parsing beyond the analysis pipeline.
+- No bypass features.
+- No arbitrary user-entered commands.
+- Flashing remains plan-based and safety-gated.

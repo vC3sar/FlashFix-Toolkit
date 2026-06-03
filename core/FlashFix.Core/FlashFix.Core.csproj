@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>FlashFix.Core</AssemblyName>
+    <RootNamespace>FlashFix.Core</RootNamespace>
+    <UseWindowsForms>false</UseWindowsForms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SharpOdinClient" Version="1.0.2" />
+    <PackageReference Include="K4os.Compression.LZ4.Legacy" Version="1.2.16" />
+  </ItemGroup>
+</Project>
